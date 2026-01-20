@@ -1,56 +1,23 @@
-# קבצי Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# קבצי סביבה
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# קבצי IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# קבצי מערכת
 .DS_Store
 Thumbs.db
-
-# קבצי לוג
 *.log
 logs/
-
-# קבצי פריסה זמניים
 deploy_*.ps1
-deploy_*.sh
 setup_*.ps1
-
-# קבצי Railway/Railway
 .railway/
-railway-*.json
-
-# קבצי אקסל/דוחות ייצוא
 *.xlsx
 *.csv
 export_*.txt

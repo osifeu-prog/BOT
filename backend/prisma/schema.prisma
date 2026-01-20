@@ -1,0 +1,153 @@
+﻿generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  telegramId     BigInt    @unique @map("telegram_id")
+  username       String?
+  firstName      String?   @map("first_name")
+  lastName       String?   @map("last_name")
+  balanceTokens  Int       @default(0) @map("balance_tokens")
+  referralCode   String    @unique @map("referral_code")
+  referredBy     Int?      @map("referred_by")
+  isBanned       Boolean   @default(false) @map("is_banned")
+  isAdmin        Boolean   @default(false) @map("is_admin")
+  languageCode   String?   @map("language_code")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  referredUsers  User[]    @relation("Referral", fields: [telegramId], references: [referredBy])
+  referrer       User?     @relation("Referral", fields: [referredBy], references: [telegramId])
+  userStores     UserStore[]
+  gamesPlayed    GameHistory[]
+  transactions   Transaction[]
+  
+  @@map("users")
+  @@index([telegramId])
+  @@index([referralCode])
+  @@index([isBanned])
+}
+
+model Store {
+  id                  Int         @id @default(autoincrement())
+  name                String
+  description         String
+  priceTokens         Int         @map("price_tokens")
+  level               Int
+  bonusWinPercent     Int         @map("bonus_win_percent")
+  passiveIncomePerHour Int        @map("passive_income_per_hour")
+  isActive            Boolean     @default(true) @map("is_active")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  
+  // Relations
+  userStores          UserStore[]
+  
+  @@map("stores")
+}
+
+model UserStore {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  storeId     Int      @map("store_id")
+  acquiredAt  DateTime @default(now()) @map("acquired_at")
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  store       Store    @relation(fields: [storeId], references: [id])
+  
+  @@map("user_stores")
+  @@unique([userId, storeId])
+}
+
+model GameHistory {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  gameType    String   @map("game_type")
+  betAmount   Int      @map("bet_amount")
+  winAmount   Int      @map("win_amount")
+  result      String   // 'win', 'loss', 'draw'
+  metadata    Json?    // Game-specific data
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@map("game_history")
+  @@index([userId, createdAt])
+  @@index([gameType])
+}
+
+model Transaction {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  type            String    // 'purchase', 'game', 'referral', 'passive_income'
+  amount          Int
+  balanceBefore   Int       @map("balance_before")
+  balanceAfter    Int       @map("balance_after")
+  description     String?
+  metadata        Json?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+  
+  @@map("transactions")
+  @@index([userId, createdAt])
+  @@index([type])
+}
+
+model Payment {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  amountTokens    Int       @map("amount_tokens")
+  amountCrypto    Float     @map("amount_crypto")
+  currency        String    // 'TON', 'USDT', etc.
+  paymentId       String?   @unique @map("payment_id")
+  status          String    @default('pending') // 'pending', 'completed', 'failed'
+  paymentMethod   String?   @map("payment_method")
+  transactionHash String?   @map("transaction_hash")
+  metadata        Json?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+  
+  @@map("payments")
+  @@index([userId, status])
+  @@index([paymentId])
+}
+
+model SystemConfig {
+  id              Int      @id @default(autoincrement())
+  key             String   @unique
+  value           String
+  description     String?
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("system_config")
+}
+
+model Session {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  token           String    @unique
+  expiresAt       DateTime  @map("expires_at")
+  userAgent       String?   @map("user_agent")
+  ipAddress       String?   @map("ip_address")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+  
+  @@map("sessions")
+  @@index([token])
+  @@index([expiresAt])
+}

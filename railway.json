@@ -2,129 +2,13 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "pip install --upgrade pip && pip install -r requirements.txt",
-    "watchPatterns": [
-      "**/*.py",
-      "**/*.json",
-      "requirements.txt"
-    ],
-    "nixpacksConfig": {
-      "phases": {
-        "setup": {
-          "aptPkgs": [
-            "redis-server",
-            "libjpeg-dev",
-            "zlib1g-dev",
-            "libpq-dev",
-            "gcc",
-            "g++",
-            "make",
-            "python3-dev",
-            "ffmpeg",
-            "libsndfile1"
-          ]
-        },
-        "install": {
-          "cmds": [
-            "python -m venv /opt/venv",
-            ". /opt/venv/bin/activate",
-            "pip install --no-cache-dir -r requirements.txt"
-          ]
-        }
-      },
-      "start": {
-        "cmd": "python Main.py"
-      }
-    }
+    "buildCommand": "pip install -r requirements.txt"
   },
   "deploy": {
     "startCommand": "python Main.py",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10,
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 30,
-    "healthcheckInterval": 60,
-    "healthcheckRetries": 3
-  },
-  "environments": {
-    "production": {
-      "scripts": {
-        "predeploy": "python scripts/pre_deploy.py"
-      },
-      "variables": {
-        "ENVIRONMENT": "production",
-        "PYTHONPATH": "/app",
-        "PYTHONUNBUFFERED": "1",
-        "PYTHONDONTWRITEBYTECODE": "1"
-      }
-    },
-    "development": {
-      "variables": {
-        "ENVIRONMENT": "development",
-        "DEBUG_MODE": "true"
-      }
-    }
-  },
-  "services": [
-    {
-      "name": "bot-service",
-      "source": {
-        "type": "image",
-        "image": "python:3.11-slim"
-      },
-      "build": {
-        "context": ".",
-        "dockerfile": "Dockerfile"
-      },
-      "deploy": {
-        "replicas": 2,
-        "resources": {
-          "cpu": 2,
-          "memory": "1GB"
-        }
-      }
-    },
-    {
-      "name": "redis-service",
-      "source": {
-        "type": "image",
-        "image": "redis:7-alpine"
-      },
-      "deploy": {
-        "resources": {
-          "cpu": 1,
-          "memory": "512MB"
-        }
-      }
-    }
-  ],
-  "checks": {
-    "alive": {
-      "type": "http",
-      "path": "/health",
-      "interval": "30s",
-      "timeout": "5s",
-      "method": "GET"
-    },
-    "ready": {
-      "type": "http",
-      "path": "/ready",
-      "interval": "60s",
-      "timeout": "10s",
-      "method": "GET"
-    }
-  },
-  "observability": {
-    "metrics": {
-      "enabled": true,
-      "port": 9090
-    },
-    "logs": {
-      "enabled": true,
-      "retention": "7d"
-    },
-    "tracing": {
-      "enabled": true
-    }
+    "healthcheckTimeout": 10
   }
 }

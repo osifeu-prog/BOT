@@ -2,6 +2,15 @@ import os
 from flask import Flask, request
 from handlers.start_handler import handle_start
 from handlers.button_handler import handle_button
+from utils.send_message import send_message
+from lessons.db_lesson import get_db_lesson_text
+
+# בתוך webhook(), אחרי if text == "/start":
+
+if text.strip() == "קיבלתי שיעור DB":
+    # כאן בעתיד אפשר לבדוק ב‑DB אם המשתמש באמת שילם
+    # כרגע – נפתח לו את השיעור תמיד
+    return send_message(chat_id, get_db_lesson_text())
 
 app = Flask(__name__)
 

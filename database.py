@@ -29,12 +29,14 @@ def get_user_profile(uid):
 def update_user_stat(uid, field, amount):
     key = f"user:{uid}:profile"
     r.hset(key, "last_active", str(int(time.time())))
-    return r.hincrby(key, field, amount)
+    # שימוש ב-hincrby מבטיח פעולה אטומית (מונע באגים של כפל חיובים)
+    return r.hincrby(key, field, int(amount))
 
-def get_market_price():
-    users = r.smembers("users_list")
-    total_circulating = 0
-    for u in users:
-        total_circulating += int(r.hget(f"user:{u}:profile", "balance") or 0)
-    price = 10 + (total_circulating // 10000)
-    return max(10, price)
+def save_game_state(uid, game_type, data):
+    """שמירת מצב משחק בצורה מאובטחת כ-JSON"""
+    r.set(f"game:{game_type}:{uid}", json.dumps(data), ex=600)
+
+def get_game_state(uid, game_type):
+    """שליפת מצב משחק ופענוח JSON"""
+    data = r.get(f"game:{game_type}:{uid}")
+    return json.loads(data) if data else None

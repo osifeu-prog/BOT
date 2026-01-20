@@ -1,0 +1,7 @@
+﻿python-telegram-bot==20.8
+redis
+matplotlib
+pandas
+xlsxwriter
+python-dotenv
+httpx

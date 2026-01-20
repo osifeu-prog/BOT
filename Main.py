@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-NFTY ULTRA BOT - NO CONFLICT GUARANTEE
-גרסה שמונעת קונפליקט בוודאות
+NFTY ULTRA BOT - RAILWAY OPTIMIZED
+גרסה מותאמת במיוחד ל-Railway עם webhook בלבד
 """
 
 import os
@@ -9,8 +9,9 @@ import sys
 import logging
 import time
 from telegram.ext import Application, CommandHandler
+import asyncio
 
-# השתק הכל - ב-Railway לא צריך לוגים רבים
+# השתק הכל
 logging.getLogger().setLevel(logging.ERROR)
 logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("telegram").setLevel(logging.ERROR)
@@ -23,62 +24,94 @@ logger = logging.getLogger(__name__)
 
 async def start(update, context):
     """פקודת /start"""
-    await update.message.reply_text("🎰 NFTY ULTRA CASINO - הבוט פועל!")
+    await update.message.reply_text("🎰 NFTY ULTRA CASINO - הבוט פועל ב-Railway!")
 
-def force_delete_webhook(token):
-    """מחיקת webhook בכוח - עושה 3 נסיונות"""
+async def help_command(update, context):
+    """פקודת /help"""
+    await update.message.reply_text("📖 פקודות זמינות:\n/start - התחל\n/help - עזרה")
+
+def cleanup_webhook(token):
+    """נקוי webhook ישן - חשוב מאוד!"""
     import requests
     
-    for attempt in range(3):
-        try:
-            url = f"https://api.telegram.org/bot{token}/deleteWebhook"
-            params = {"drop_pending_updates": "true"}
-            response = requests.get(url, params=params, timeout=10)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("ok"):
-                    print(f"✅ Webhook נמחק (נסיון {attempt+1})")
-                    return True
-                else:
-                    print(f"⚠️  תגובה לא תקינה: {data}")
-            else:
-                print(f"⚠️  סטטוס {response.status_code}")
-                
-        except Exception as e:
-            print(f"⚠️  שגיאה: {e}")
-        
-        time.sleep(1)  # המתן בין נסיונות
+    print("🧹 נקוי webhook ישן...")
     
-    print("❌ לא הצלחנו למחוק webhook")
-    return False
-
-def check_current_webhook(token):
-    """בדיקה מה יש כרגע"""
-    import requests
+    # נסיון 1: מחיקת webhook
     try:
-        url = f"https://api.telegram.org/bot{token}/getWebhookInfo"
-        response = requests.get(url, timeout=5)
+        delete_url = f"https://api.telegram.org/bot{token}/deleteWebhook"
+        response = requests.get(delete_url, params={"drop_pending_updates": "true"}, timeout=10)
+        print(f"🗑️  מחיקת webhook: {response.status_code}")
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✅ {data.get('description', 'נמחק')}")
+    except Exception as e:
+        print(f"⚠️  לא הצלחנו למחוק webhook: {e}")
+    
+    # נסיון 2: בדיקה מה יש כרגע
+    try:
+        get_url = f"https://api.telegram.org/bot{token}/getWebhookInfo"
+        response = requests.get(get_url, timeout=5)
         if response.status_code == 200:
             data = response.json()
             if data.get("ok"):
                 webhook_info = data.get("result", {})
-                print(f"📊 Webhook נוכחי:")
-                print(f"   URL: {webhook_info.get('url', 'None')}")
-                print(f"   Pending updates: {webhook_info.get('pending_update_count', 0)}")
-                return webhook_info
+                if webhook_info.get("url"):
+                    print(f"⚠️  עדיין יש webhook פעיל: {webhook_info.get('url')[:50]}...")
     except Exception as e:
         print(f"⚠️  לא ניתן לבדוק webhook: {e}")
-    return None
 
-def main():
-    """נקודת כניסה ראשית"""
+def is_railway_environment():
+    """בדיקה אם אנחנו ב-Railway"""
+    railway_vars = [
+        "RAILWAY_PUBLIC_DOMAIN",
+        "RAILWAY_STATIC_URL", 
+        "RAILWAY_ENVIRONMENT",
+        "RAILWAY_SERVICE_NAME"
+    ]
+    
+    for var in railway_vars:
+        if os.environ.get(var):
+            return True
+    return False
+
+async def setup_webhook(app, token, domain, port):
+    """הגדרת webhook ל-Railway"""
+    try:
+        # קודם כל, נמחק webhook קיים
+        import requests
+        delete_url = f"https://api.telegram.org/bot{token}/deleteWebhook"
+        requests.get(delete_url, params={"drop_pending_updates": "true"}, timeout=5)
+        
+        # נחכה קצת
+        await asyncio.sleep(1)
+        
+        # עכשיו נגדיר webhook חדש
+        webhook_url = f"https://{domain}/{token}"
+        print(f"🌐 הגדרת Webhook URL: {webhook_url}")
+        
+        # נגדיר את ה-webhook דרך ה-Application
+        await app.bot.set_webhook(
+            url=webhook_url,
+            drop_pending_updates=True,
+            allowed_updates=["message", "callback_query"],
+            secret_token=token[:32]
+        )
+        
+        print("✅ Webhook הוגדר בהצלחה!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ שגיאה בהגדרת webhook: {e}")
+        return False
+
+async def main_async():
+    """נקודת כניסה ראשית - async version"""
     print("=" * 70)
-    print("🚀 NFTY ULTRA BOT - NO-CONFLICT VERSION")
+    print("🚀 NFTY ULTRA BOT - RAILWAY EDITION")
     print("=" * 70)
     print(f"🕐 התחלה: {time.strftime('%H:%M:%S')}")
     
-    # שלב 1: בדיקת טוקן
+    # שלב 1: טעינת הטוקן
     try:
         from config import TELEGRAM_TOKEN
     except ImportError:
@@ -92,98 +125,96 @@ def main():
     
     print(f"✅ טוקן: {TELEGRAM_TOKEN[:10]}...")
     
-    # שלב 2: מחיקת webhook קיים בכוח
-    print("\n🗑️  מחיקת webhook קיים...")
-    force_delete_webhook(TELEGRAM_TOKEN)
-    
-    # בדיקה מה יש כרגע
-    check_current_webhook(TELEGRAM_TOKEN)
-    
-    # שלב 3: בדיקת סביבה
+    # שלב 2: בדיקת סביבה
     port = int(os.environ.get("PORT", 8080))
-    print(f"\n🔧 פורט: {port}")
+    print(f"🔧 פורט: {port}")
     
-    # בדיקה אם אנחנו ב-Railway
-    domain = None
-    
-    # בדוק כל משתנה אפשרי של Railway
-    railway_vars = ["RAILWAY_PUBLIC_DOMAIN", "RAILWAY_STATIC_URL", 
-                    "RAILWAY_ENVIRONMENT", "RAILWAY_SERVICE_NAME"]
-    
-    print("\n📋 בדיקת משתני Railway:")
-    for var in railway_vars:
-        value = os.environ.get(var)
-        if value:
-            print(f"   {var}: {value}")
-            if var in ["RAILWAY_PUBLIC_DOMAIN", "RAILWAY_STATIC_URL"]:
-                domain = value
-    
-    # אם לא מצאנו דומיין, ננסה לשחזר מהנתונים
-    if not domain:
-        print("⚠️  לא נמצא דומיין במשתנים")
-        # ניסיון לשחזר מהסביבה
-        service_name = os.environ.get("RAILWAY_SERVICE_NAME", "bot")
-        domain = f"{service_name}.up.railway.app"
-        print(f"   דומיין משוער: {domain}")
-    
-    # נקה את הדומיין
-    if domain:
-        if domain.startswith("https://"):
-            domain = domain.replace("https://", "")
-        elif domain.startswith("http://"):
-            domain = domain.replace("http://", "")
-        domain = domain.rstrip("/")
-    
-    print(f"\n🎯 החלטה: {'RAILWAY' if domain else 'LOCAL'}")
+    # שלב 3: נקוי webhook ישן
+    cleanup_webhook(TELEGRAM_TOKEN)
     
     # שלב 4: הפעלת הבוט
     try:
+        # בניית האפליקציה
         app = Application.builder().token(TELEGRAM_TOKEN).build()
-        app.add_handler(CommandHandler("start", start))
         
-        if domain:
-            # ב-Railway - חייבים webhook
-            webhook_url = f"https://{domain}/{TELEGRAM_TOKEN}"
-            print(f"\n🌐 Webhook URL: {webhook_url[:50]}...")
+        # הוספת handlers
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(CommandHandler("help", help_command))
+        
+        # בדיקה אם אנחנו ב-Railway
+        if is_railway_environment():
+            print("🏗️  סביבת Railway זוהתה")
             
-            # הגדר webhook לפני ההרצה
-            try:
-                import requests
-                set_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook"
-                params = {
-                    "url": webhook_url,
-                    "drop_pending_updates": "true",
-                    "secret_token": TELEGRAM_TOKEN[:32]
-                }
-                response = requests.get(set_url, params=params, timeout=10)
-                print(f"📡 הגדרת webhook: {response.status_code}")
-            except:
-                pass
+            # חובה להשתמש ב-webhook ב-Railway
+            domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN")
+            if not domain:
+                # נסיון לשחזר דומיין
+                service_name = os.environ.get("RAILWAY_SERVICE_NAME", "bot")
+                domain = f"{service_name}.up.railway.app"
+                print(f"🌐 דומיין משוער: {domain}")
             
-            # הפעל עם webhook
-            app.run_webhook(
+            # נקה את הדומיין
+            if domain.startswith("https://"):
+                domain = domain.replace("https://", "")
+            elif domain.startswith("http://"):
+                domain = domain.replace("http://", "")
+            domain = domain.rstrip("/")
+            
+            print(f"🎯 שימוש ב-webhook עם דומיין: {domain}")
+            
+            # הגדר webhook
+            webhook_set = await setup_webhook(app, TELEGRAM_TOKEN, domain, port)
+            if not webhook_set:
+                print("⚠️  לא הצלחנו להגדיר webhook, מנסה להמשיך בכל זאת...")
+            
+            # הפעל את ה-webhook server
+            print(f"🚀 מפעיל שרת webhook על port {port}...")
+            
+            await app.initialize()
+            await app.start()
+            
+            # הפעל את ה-webhook listener
+            await app.updater.start_webhook(
                 listen="0.0.0.0",
                 port=port,
                 url_path=TELEGRAM_TOKEN,
-                webhook_url=webhook_url,
-                secret_token=TELEGRAM_TOKEN[:32],
+                webhook_url=f"https://{domain}/{TELEGRAM_TOKEN}",
+                drop_pending_updates=True
+            )
+            
+            print("✅ הבוט פועל עם webhook ב-Railway!")
+            print("🔄 מחכה להודעות...")
+            
+            # שמור את האפליקציה פעילה
+            await asyncio.Event().wait()
+            
+        else:
+            # סביבה מקומית - polling
+            print("💻 הרצה עם polling (סביבה מקומית)")
+            
+            await app.initialize()
+            await app.start()
+            await app.updater.start_polling(
                 drop_pending_updates=True,
                 allowed_updates=["message", "callback_query"]
             )
-        else:
-            # מקומי - polling
-            print("\n💻 הרצה עם polling (מקומי)")
-            app.run_polling(
-                drop_pending_updates=True,
-                allowed_updates=["message", "callback_query"],
-                poll_interval=0.5,
-                timeout=10
-            )
+            
+            print("✅ הבוט פועל עם polling!")
+            print("🔄 מחכה להודעות...")
+            
+            # שמור את האפליקציה פעילה
+            await asyncio.Event().wait()
             
     except Exception as e:
-        print(f"\n❌ שגיאה: {type(e).__name__}: {e}")
-        print(f"🕐 סיום: {time.strftime('%H:%M:%S')}")
+        print(f"❌ שגיאה קשה: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
+
+def main():
+    """נקודת כניסה ראשית"""
+    # הפעל את האפליקציה
+    asyncio.run(main_async())
 
 if __name__ == "__main__":
     main()

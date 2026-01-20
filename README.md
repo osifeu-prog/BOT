@@ -1,47 +1,35 @@
-# 🎰 Ultimate Casino & Investment Bot
 
-Production-ready Telegram bot ecosystem.
+# FreePlay Platform MVP
 
-## 🚀 Quick Deploy to Railway
+## Overview
+Free-to-play gamified Telegram + Web platform.
+No real money, points only.
 
-1. **Push to GitHub**:
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/osifeu-prog/BOT.git
-git push -u origin main
-```
+## Features
+- Free games (slots demo)
+- Points-based rewards
+- Shop (access & roles)
+- Admin roles
+- Telegram webhook ready
+- Railway-ready deployment
 
-2. **Railway Setup**:
-   - Connect GitHub repo
-   - Add PostgreSQL database
-   - Set environment variables
-   - Deploy!
+## Environment Variables
+- ADMIN_USERNAME
+- ADMIN_PASSWORD
+- TELEGRAM_TOKEN
+- WEBHOOK_URL
+- PORT=8080
 
-## 🔧 Required Environment Variables
+## Deployment (Railway)
+1. Upload ZIP or push to GitHub
+2. Create Railway project
+3. Add environment variables
+4. Deploy
+5. Verify `/health` returns OK
 
-- `TELEGRAM_TOKEN` - Get from @BotFather
-- `ADMIN_ID` - Your Telegram user ID
-- `WEBHOOK_URL` - https://your-app.railway.app
-- `WIN_CHANCE_PERCENT` - Default: 45
-
-## 📦 Features
-
-- 🎰 Casino (Slots, Roulette, Dice)
-- 💰 Investment Platform
-- 👥 3-Level Referral System
-- 🛍️ Internal Shop
-- 🌍 Multi-language (EN/HE/RU)
-
-## 📝 Commands
-
-- `/start` - Main menu
-- `/casino` - Play games
-- `/invest` - Investment plans
-- `/balance` - Check balance
-- `/referral` - Referral info
-- `/admin` - Admin panel
-
-Built for Railway deployment 🚂
+## Testing Checklist
+- `/health` -> OK
+- `/games/slots` returns result
+- `/shop/items` returns items
+- Admin login works
+- Railway logs show no errors

@@ -5,13 +5,6 @@ from handlers.button_handler import handle_button
 from utils.send_message import send_message
 from lessons.db_lesson import get_db_lesson_text
 
-# בתוך webhook(), אחרי if text == "/start":
-
-if text.strip() == "קיבלתי שיעור DB":
-    # כאן בעתיד אפשר לבדוק ב‑DB אם המשתמש באמת שילם
-    # כרגע – נפתח לו את השיעור תמיד
-    return send_message(chat_id, get_db_lesson_text())
-
 app = Flask(__name__)
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -33,6 +26,21 @@ def webhook():
 
             if text == "/start":
                 return handle_start(chat_id)
+
+            if text.strip() == "קיבלתי שיעור DB":
+                return send_message(chat_id, get_db_lesson_text())
+
+            if text.strip() == "סיימתי שלב":
+                from db.user_progress import advance_user_step
+                advance_user_step(chat_id)
+                return send_message(chat_id, "מצוין! לחץ על 'המשך שיעור' כדי לעבור לשלב הבא.")
+
+            if text.strip() == "מתנה שיעור DB":
+                from db.user_progress import has_completed
+                if not has_completed(chat_id):
+                    return send_message(chat_id, "עליך להשלים את כל השלבים לפני שתוכל לתת את השיעור במתנה.")
+                gift_link = f"https://t.me/{os.getenv('BOT_USERNAME')}?start=gift_db"
+                return send_message(chat_id, f"🎁 הנה קישור מתנה:\n{gift_link}")
 
         # לחיצה על כפתור
         if "callback_query" in data:

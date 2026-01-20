@@ -1,8 +1,14 @@
-import redis, json, os
+﻿import redis, json, os
 from datetime import datetime
 from config import REDIS_URL
 
 class CRM:
+    ADMIN_ID = None  # ייקבע מ-config
+    
+    def __init__(self):
+        from config import ADMIN_ID
+        self.ADMIN_ID = ADMIN_ID
+        self.r = redis.from_url(REDIS_URL, decode_responses=True)
     def __init__(self):
         self.r = redis.from_url(REDIS_URL, decode_responses=True)
     
@@ -32,3 +38,4 @@ class CRM:
         self.r.lpush(f"user:{uid}:history", log_entry)
 
 db = CRM()
+

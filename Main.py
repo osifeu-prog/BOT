@@ -1,160 +1,86 @@
-#!/usr/bin/env python3
-"""
-NFTY ULTRA - ABSOLUTELY NO CONFLICT
-גרסה סופית שתמנע קונפליקטים בשום מצב.
-"""
-
-import os
-import sys
-import asyncio
 import logging
-import time
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+import asyncio
+from telegram.ext import (
+    ApplicationBuilder, 
+    CommandHandler, 
+    CallbackQueryHandler, 
+    MessageHandler, 
+    filters,
+    Defaults
+)
+from telegram.constants import ParseMode
 
-# כבה לוגים לחלוטין
-logging.getLogger().setLevel(logging.CRITICAL)
-logging.getLogger("httpx").setLevel(logging.CRITICAL)
-logging.getLogger("telegram").setLevel(logging.CRITICAL)
-logging.getLogger("asyncio").setLevel(logging.CRITICAL)
+# טעינת הגדרות ומסד נתונים
+from config import BOT_TOKEN
+from app.database.manager import db
 
-# רק הודעות חשובות שלנו
-print = lambda *args, **kwargs: __builtins__.print("🚀", *args, **kwargs)
+# ייבוא משחקים
+from app.games.dice import (
+    start_dice, 
+    custom_bet_prompt, 
+    pick_number_screen, 
+    handle_dice_run, 
+    handle_dice_msg_input
+)
+from app.games.blackjack import start_blackjack # דוגמה למשחקים קיימים
+from app.games.crash import start_crash
+from app.games.mines import start_mines
+from app.games.slots import start_slots
+from app.games.roulette import start_roulette
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🎰 NFTY ULTRA CASINO - הבוט פעיל!")
+# ייבוא פונקציות בוט כלליות
+from app.bot.welcome import start_command
 
-def delete_webhook_completely(token: str):
-    """מוחק webhook בצורה אגרסיבית"""
-    import requests
+# הגדרת לוגים מקצועית
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+async def error_handler(update: object, context: dict):
+    """טיפול בשגיאות גלובלי כדי שהבוט לא יקרוס"""
+    logger.error(f"Error occurred: {context.error}")
+
+async def main():
+    # הגדרת ברירת מחדל ל-Markdown
+    defaults = Defaults(parse_mode=ParseMode.MARKDOWN)
     
-    print("🧹 מנקה webhook ישן לחלוטין...")
+    # בניית האפליקציה
+    application = ApplicationBuilder().token(BOT_TOKEN).defaults(defaults).build()
+
+    # --- פקודות בסיסיות ---
+    application.add_handler(CommandHandler("start", start_command))
+
+    # --- משחק קוביות (Dice) - Handlers משופרים ---
+    application.add_handler(CallbackQueryHandler(start_dice, pattern="^play_dice$"))
+    application.add_handler(CallbackQueryHandler(custom_bet_prompt, pattern="^dice_custom_bet$"))
+    application.add_handler(CallbackQueryHandler(pick_number_screen, pattern="^dice_step2_"))
+    application.add_handler(CallbackQueryHandler(handle_dice_run, pattern="^dice_run_"))
     
-    # נסה עד 3 פעמים
-    for i in range(3):
-        try:
-            url = f"https://api.telegram.org/bot{token}/deleteWebhook"
-            response = requests.get(url, params={"drop_pending_updates": "true"}, timeout=10)
-            if response.status_code == 200:
-                print(f"✅ Webhook נמחק (נסיון {i+1})")
-            time.sleep(1)
-        except:
-            pass
-    
-    # בדוק שאין webhook
+    # --- משחקים נוספים (שמירה על הקיים) ---
+    application.add_handler(CallbackQueryHandler(start_blackjack, pattern="^play_blackjack$"))
+    application.add_handler(CallbackQueryHandler(start_crash, pattern="^play_crash$"))
+    application.add_handler(CallbackQueryHandler(start_mines, pattern="^play_mines$"))
+    application.add_handler(CallbackQueryHandler(start_slots, pattern="^play_slots$"))
+    application.add_handler(CallbackQueryHandler(start_roulette, pattern="^play_roulette$"))
+
+    # --- טיפול בקלט טקסט (חשוב להימור מותאם אישית) ---
+    # ה-MessageHandler הזה בודק בתוך הפונקציה אם המשתמש במצב "המתנה להימור"
+    application.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND, 
+        handle_dice_msg_input
+    ))
+
+    # רישום מנגנון שגיאות
+    application.add_error_handler(error_handler)
+
+    # --- הרצת הבוט ---
+    print("💎 הבוט הופעל בהצלחה - כל המשחקים מחוברים!")
+    await application.run_polling()
+
+if __name__ == '__main__':
     try:
-        url = f"https://api.telegram.org/bot{token}/getWebhookInfo"
-        response = requests.get(url, timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("ok") and data.get("result", {}).get("url"):
-                print("⚠️  עדיין יש webhook - נמחק שוב")
-                # נמחק שוב
-                url = f"https://api.telegram.org/bot{token}/deleteWebhook"
-                requests.get(url, params={"drop_pending_updates": "true"}, timeout=5)
-    except:
-        pass
-
-def main():
-    """הנקודה הראשית - פשוטה וחזקה"""
-    print("NFTY ULTRA BOT - הפעלה")
-    
-    # טען טוקן
-    try:
-        from config import TELEGRAM_TOKEN
-    except:
-        print("❌ לא ניתן לטעון config.py")
-        sys.exit(1)
-    
-    token = TELEGRAM_TOKEN
-    if not token or token == "YOUR_BOT_TOKEN_HERE":
-        print("❌ טוקן לא תקין")
-        sys.exit(1)
-    
-    print(f"טוקן: {token[:10]}...")
-    
-    # קבל פורט
-    port = int(os.environ.get("PORT", 8080))
-    
-    # בדוק אם אנחנו ב-Railway (לפי משתנים)
-    is_railway = False
-    domain = None
-    
-    if os.environ.get("RAILWAY_PUBLIC_DOMAIN"):
-        is_railway = True
-        domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN")
-    elif os.environ.get("PORT"):
-        # אם יש PORT סביר שאנחנו ב-Railway
-        is_railway = True
-        # ננסה למצוא דומיין
-        service_name = os.environ.get("RAILWAY_SERVICE_NAME", "bot")
-        domain = f"{service_name}.up.railway.app"
-    
-    if is_railway:
-        print(f"🔧 Railway mode - פורט {port}")
-        
-        # נקה webhook לחלוטין
-        delete_webhook_completely(token)
-        
-        # צור אפליקציה
-        app = Application.builder().token(token).build()
-        app.add_handler(CommandHandler("start", start))
-        
-        # המתן קצת
-        time.sleep(2)
-        
-        # הגדר webhook
-        domain = domain.replace("https://", "").replace("http://", "").rstrip("/")
-        webhook_url = f"https://{domain}/{token}"
-        
-        print(f"🌐 מגדיר webhook: {webhook_url}")
-        
-        async def run():
-            await app.initialize()
-            
-            # הגדר webhook
-            await app.bot.set_webhook(
-                url=webhook_url,
-                drop_pending_updates=True,
-                allowed_updates=["message", "callback_query"]
-            )
-            
-            # הפעל webhook
-            await app.start()
-            await app.updater.start_webhook(
-                listen="0.0.0.0",
-                port=port,
-                url_path=token,
-                webhook_url=webhook_url,
-                drop_pending_updates=True
-            )
-            
-            print("✅ הבוט פועל עם webhook!")
-            
-            # החזק את התוכנית רצה
-            await asyncio.Event().wait()
-        
-        # הרץ
-        asyncio.run(run())
-    else:
-        print("💻 מקומי - polling")
-        
-        # נקה webhook
-        delete_webhook_completely(token)
-        
-        # צור אפליקציה
-        app = Application.builder().token(token).build()
-        app.add_handler(CommandHandler("start", start))
-        
-        # המתן
-        time.sleep(2)
-        
-        # הרץ polling
-        print("🔄 מפעיל polling...")
-        app.run_polling(
-            drop_pending_updates=True,
-            allowed_updates=["message", "callback_query"]
-        )
-
-if __name__ == "__main__":
-    main()
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Bot stopped.")

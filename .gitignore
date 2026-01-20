@@ -3,3 +3,22 @@
 __pycache__/
 *.pyc
 .vscode/
+
+# Python cache
+*.pyc
+__pycache__/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+
+# Local test files
+test_*.py

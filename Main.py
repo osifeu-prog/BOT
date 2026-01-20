@@ -6,7 +6,7 @@ from app.bot.welcome import start
 from app.core.shop import open_shop
 from app.core.affiliate import show_affiliate_panel
 from app.games.mines import start_mines, handle_mine_click
-from admin.dashboard import send_admin_report
+from admin.dashboard import send_admin_report, broadcast
 from admin.tools import gift_balance
 
 async def daily_bonus(update, context):
@@ -42,6 +42,7 @@ if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("gift", gift_balance))
+    app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CallbackQueryHandler(main_handler))
     print("🚀 NFTY ULTRA IS LIVE!")
     app.run_polling()

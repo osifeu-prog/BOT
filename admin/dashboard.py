@@ -13,7 +13,7 @@ async def send_admin_report(update, context):
     buf = BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
-    await context.bot.send_photo(chat_id=update.effective_chat.id, photo=buf, caption=f"📊 סה\"כ משתמשים: {total_users}")
+    await context.bot.send_photo(chat_id=update.effective_chat.id, photo=buf, caption=f"📊 סה"כ משתמשים: {total_users}")
 
 async def broadcast(update, context):
     if str(update.effective_user.id) != os.getenv("ADMIN_ID"):

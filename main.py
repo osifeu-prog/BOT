@@ -1,61 +1,51 @@
 import os
-from flask import Flask, request
-from handlers.start_handler import handle_start
-from handlers.button_handler import handle_button
-from utils.send_message import send_message
-from lessons.db_lesson import get_db_lesson_text
+import asyncio
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import Command
+from sqlalchemy import create_engine, Column, BigInteger, Float, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-app = Flask(__name__)
-
+# --- משיכת משתנים מ-Railway ---
 TOKEN = os.getenv("TELEGRAM_TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./casino.db")
+ADMIN_ID = os.getenv("ADMIN_ID")
 
-@app.route("/", methods=["GET"])
-def home():
-    return "Bot is running"
+# --- הגדרת מסד נתונים ---
+# אם ה-URL מתחיל ב-postgres, נתקן אותו עבור SQLAlchemy
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-@app.route(f"/webhook/{TOKEN}", methods=["POST"])
-def webhook():
-    try:
-        data = request.get_json()
-        print("Incoming update:", data)
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(bind=engine)
+Base = declarative_base()
 
-        # הודעת טקסט רגילה
-        if "message" in data:
-            chat_id = data["message"]["chat"]["id"]
-            text = data["message"].get("text", "")
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(BigInteger, primary_key=True)
+    username = Column(String)
+    balance = Column(Float, default=1000.0)
 
-            if text == "/start":
-                return handle_start(chat_id)
+# --- הגדרת בוט ---
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
 
-            if text.strip() == "קיבלתי שיעור DB":
-                return send_message(chat_id, get_db_lesson_text())
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    session = SessionLocal()
+    user = session.query(User).filter(User.id == message.from_user.id).first()
+    if not user:
+        user = User(id=message.from_user.id, username=message.from_user.username)
+        session.add(user)
+        session.commit()
+    
+    await message.answer(f"ברוך הבא! היתרה שלך: {user.balance} 💰")
+    session.close()
 
-            if text.strip() == "סיימתי שלב":
-                from db.user_progress import advance_user_step
-                advance_user_step(chat_id)
-                return send_message(chat_id, "מצוין! לחץ על 'המשך שיעור' כדי לעבור לשלב הבא.")
-
-            if text.strip() == "מתנה שיעור DB":
-                from db.user_progress import has_completed
-                if not has_completed(chat_id):
-                    return send_message(chat_id, "עליך להשלים את כל השלבים לפני שתוכל לתת את השיעור במתנה.")
-                gift_link = f"https://t.me/{os.getenv('BOT_USERNAME')}?start=gift_db"
-                return send_message(chat_id, f"🎁 הנה קישור מתנה:\n{gift_link}")
-
-        # לחיצה על כפתור
-        if "callback_query" in data:
-            chat_id = data["callback_query"]["message"]["chat"]["id"]
-            callback_data = data["callback_query"]["data"]
-            return handle_button(chat_id, callback_data)
-
-        return "ok"
-
-    except Exception as e:
-        print("ERROR in webhook:", e)
-        return "error", 500
-
+async def main():
+    Base.metadata.create_all(engine)
+    print("Bot is starting on Railway...")
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
-    print(f"Starting server on port {port}")
-    app.run(host="0.0.0.0", port=port)
+    asyncio.run(main())

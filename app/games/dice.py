@@ -1,102 +1,75 @@
-import asyncio
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
-from telegram.ext import ContextTypes
-from telegram.constants import ParseMode
-from app.database.manager import db
-
-# --- הגדרות עיצוב וקונפיגורציה ---
-MULTIPLIER = 6
-BET_OPTIONS = [10, 25, 50, 100, 500]
-
-# כותרת מעוצבת למשחק (אפשר להחליף בלינק לתמונה שלך)
-GAME_BANNER = "https://cdn-icons-png.flaticon.com/512/282/282463.png" 
-
-async def start_dice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_dice_run(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    מסך 1: לובי המשחק - בחירת סכום הימור.
-    העיצוב כולל תמונה ומד היתרה.
+    מסך 3: שלב ההרצה, האנימציה והתוצאה הסופית.
     """
     query = update.callback_query
     uid = query.from_user.id
     
-    # שליפת יתרה עדכנית
+    # שליפת נתונים מה-Callback: dice_run_{amount}_{pick}
+    parts = query.data.split("_")
+    bet_amount = int(parts[2])
+    user_pick = int(parts[3])
+    
+    # 1. בדיקת יתרה אחרונה לפני ביצוע (מניעת Race Condition)
     user = db.get_user(uid)
-    balance = int(user.get("balance", 0))
-
-    # עיצוב ההודעה
-    caption = f"""
-🎰 **קזינו הקוביות** 🎰
-➖➖➖➖➖➖➖➖➖➖
-💰 **היתרה שלך:** `{balance:,}` מטבעות
-📈 **מכפיל זכייה:** x{MULTIPLIER}
-➖➖➖➖➖➖➖➖➖➖
-
-🔥 **איך משחקים?**
-1️⃣ בוחרים סכום הימור
-2️⃣ מנחשים מספר (1-6)
-3️⃣ אם הקוביה נופלת על המספר שלך - הזכייה ענקית!
-
-👇 **בחר סכום להתחלה:**
-"""
+    current_balance = int(user.get("balance", 0))
     
-    # בניית כפתורים דינמית + אינדיקציה ויזואלית למה שאפשר להרשות לעצמך
-    keyboard = []
-    row = []
-    for amount in BET_OPTIONS:
-        if balance >= amount:
-            btn_text = f"{amount} 💰"
-            callback = f"dice_step2_bet_{amount}"
-        else:
-            btn_text = f"🔒 {amount}" # נעול
-            callback = "dice_no_money"
-            
-        row.append(InlineKeyboardButton(btn_text, callback_data=callback))
+    if current_balance < bet_amount:
+        await query.answer("❌ היתרה שלך אינה מספיקה!", show_alert=True)
+        return await start_dice(update, context)
+
+    # 2. "נעילת" ההימור - הורדת הכסף מיד
+    db.r.hincrby(f"user:{uid}:profile", "balance", -bet_amount)
+
+    # 3. אפקט "גלגול" ויזואלי (UX משופר)
+    frames = ["🎲", "⏳", "🎲", "🎰"]
+    for frame in frames:
+        await query.edit_message_text(
+            text=f"🎰 **הקוביה מתגלגלת...**\n\n{frame} הימרת על: `{user_pick}`\n💰 סכום: `{bet_amount}`"
+        )
+        await asyncio.sleep(0.4) # השהייה קלה ליצירת מתח
+
+    # 4. הגרלת תוצאה
+    dice_result = random.randint(1, 6)
+    is_win = (user_pick == dice_result)
+    
+    # 5. לוגיקת זכייה/הפסד
+    if is_win:
+        win_total = bet_amount * MULTIPLIER
+        db.r.hincrby(f"user:{uid}:profile", "balance", win_total)
+        db.log_transaction(uid, win_total - bet_amount, f"Dice Win {user_pick}=={dice_result}")
         
-        if len(row) == 3: # שבירת שורה כל 3 כפתורים
-            keyboard.append(row)
-            row = []
-    
-    if row: keyboard.append(row)
-    keyboard.append([InlineKeyboardButton("🔙 חזרה ללובי ראשי", callback_data="start")])
+        result_emoji = "🎉"
+        result_title = "נצחון מוחץ!"
+        result_msg = f"זכית ב-`{win_total}` מטבעות!"
+    else:
+        db.log_transaction(uid, -bet_amount, f"Dice Loss {user_pick}!={dice_result}")
+        result_emoji = "💔"
+        result_title = "אולי בפעם הבאה..."
+        result_msg = f"הפסדת `{bet_amount}` מטבעות."
 
-    # שימוש ב-edit_message_media אם רוצים לשנות תמונה, או text אם אין תמונה קודמת
-    # כאן נניח שאנחנו עורכים הודעה קיימת. ל-UX מושלם היינו מוחקים ושולחים חדש עם תמונה,
-    # אבל כדי לשמור על רצף, נשתמש בטקסט מעוצב היטב.
-    
+    # 6. הצגת המסך הסופי
+    final_text = f"""
+{result_emoji} **{result_title}**
+➖➖➖➖➖➖➖➖➖➖
+🎯 הניחוש שלך: `{user_pick}`
+🎲 תוצאת הקוביה: `{dice_result}`
+
+{result_msg}
+➖➖➖➖➖➖➖➖➖➖
+💰 יתרה מעודכנת: `{int(db.get_user(uid).get("balance", 0)):,}`
+"""
+
+    keyboard = [
+        [
+            InlineKeyboardButton("🔄 שוב באותו סכום", callback_data=f"dice_step2_bet_{bet_amount}"),
+            InlineKeyboardButton("💰 שנה סכום", callback_data="play_dice")
+        ],
+        [InlineKeyboardButton("🏠 חזרה לתפריט", callback_data="start")]
+    ]
+
     await query.edit_message_text(
-        text=caption,
+        text=final_text,
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode=ParseMode.MARKDOWN
     )
-
-async def pick_number_screen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    מסך 2: בחירת המספר המנצח.
-    """
-    query = update.callback_query
-    
-    if query.data == "dice_no_money":
-        await query.answer("❌ אין לך מספיק מטבעות להימור זה!", show_alert=True)
-        return
-
-    bet_amount = int(query.data.split("_")[-1])
-    
-    text = f"""
-🎲 **הימור על: {bet_amount} מטבעות**
-➖➖➖➖➖➖➖➖➖➖
-
-🤔 **מה המספר המנצח שלך?**
-בחר בחוכמה...
-"""
-    
-    # סידור כפתורים בצורת קוביה (2 שורות של 3)
-    keyboard = [
-        [
-            InlineKeyboardButton("1️⃣", callback_data=f"dice_run_{bet_amount}_1"),
-            InlineKeyboardButton("2️⃣", callback_data=f"dice_run_{bet_amount}_2"),
-            InlineKeyboardButton("3️⃣", callback_data=f"dice_run_{bet_amount}_3"),
-        ],
-        [
-            InlineKeyboardButton("4️⃣", callback_data=f"dice_run_{bet_amount}_4"),
-            InlineKeyboardButton("5️⃣", callback_data=f"dice_run_{bet_amount}_5"),
-            InlineKeyboardButton("6️⃣", callback_data=f"

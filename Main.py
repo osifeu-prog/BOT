@@ -1,4 +1,4 @@
-import os
+﻿import os
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 from config import TELEGRAM_TOKEN
 from app.database.manager import db
@@ -52,5 +52,21 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("gift", gift_balance))
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CallbackQueryHandler(main_handler))
-    print("🚀 NFTY ULTRA IS LIVE!")
-    app.run_polling()
+    
+    # בדוק אם אנחנו ב-Railway (יש PORT מוגדר)
+    port = int(os.environ.get("PORT", 8443))
+    
+    if "RAILWAY_ENVIRONMENT" in os.environ or "PORT" in os.environ:
+        # הרץ כ-webhook ב-Railway
+        print(f"🚀 NFTY ULTRA IS LIVE on Railway! Port: {port}")
+        url = os.environ.get("RAILWAY_STATIC_URL", f"https://{os.environ.get('RAILWAY_SERVICE_NAME', 'bot')}.up.railway.app")
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=port,
+            url_path=TELEGRAM_TOKEN,
+            webhook_url=f"{url}/{TELEGRAM_TOKEN}"
+        )
+    else:
+        # הרץ כ-polling מקומי
+        print("🚀 NFTY ULTRA IS LIVE locally!")
+        app.run_polling()

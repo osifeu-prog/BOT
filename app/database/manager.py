@@ -1,4 +1,4 @@
-﻿import redis, json, os
+import redis, json, os
 from datetime import datetime
 from config import REDIS_URL
 

@@ -1,4 +1,4 @@
-﻿from app.database.manager import db
+from app.database.manager import db
 import os
 
 async def gift_balance(update, context):

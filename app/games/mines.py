@@ -1,4 +1,4 @@
-﻿import random, json, os
+import random, json, os
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from app.database.manager import db
 

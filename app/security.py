@@ -1,4 +1,4 @@
-﻿import time
+import time
 from typing import Dict, List
 
 class RateLimiter:

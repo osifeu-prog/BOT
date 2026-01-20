@@ -1,4 +1,4 @@
-﻿from app.database.manager import db
+from app.database.manager import db
 
 async def show_affiliate_panel(update, context):
     uid = update.effective_user.id

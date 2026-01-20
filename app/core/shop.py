@@ -1,4 +1,4 @@
-﻿from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 async def open_shop(update, context):
     text = "🛒 **חנות השדרוגים של NFTY**\n\nבחר חבילה לשדרוג סיכויי הזכייה:"

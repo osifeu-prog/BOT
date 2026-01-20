@@ -1,4 +1,4 @@
-﻿import httpx, os
+import httpx, os
 from config import TELEGRAM_TOKEN
 from app.database.manager import db
 

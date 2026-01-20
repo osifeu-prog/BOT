@@ -1,4 +1,4 @@
-﻿import os
+import os
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 from config import TELEGRAM_TOKEN
 from app.database.manager import db

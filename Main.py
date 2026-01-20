@@ -7,7 +7,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("telegram").setLevel(logging.WARNING)
 
-# הגדר logging רק לבוט שלנו
+# הגדר logging לבוט שלנו
 logging.basicConfig(
     format='%(asctime)s - NFTY ULTRA - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -16,17 +16,57 @@ logger = logging.getLogger(__name__)
 
 async def start(update, context):
     """פקודת /start פשוטה"""
-    await update.message.reply_text("🎰 NFTY ULTRA CASINO - הבוט פועל ומוכן!")
+    await update.message.reply_text(
+        "🎰 **NFTY ULTRA CASINO** 🎰\n\n"
+        "✅ הבוט פועל ומוכן!\n\n"
+        "🚀 המשחקים זמינים בקרוב..."
+    )
 
-async def error_handler(update, context):
-    """טיפול בשגיאות"""
-    logger.error(f"Error: {context.error}")
+def delete_existing_webhook(token):
+    """מחיקת webhook קיים - חיוני למניעת קונפליקט"""
+    try:
+        import requests
+        url = f"https://api.telegram.org/bot{token}/deleteWebhook?drop_pending_updates=true"
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            logger.info("✅ Webhook קיים נמחק")
+            return True
+        else:
+            logger.warning(f"⚠️ לא ניתן למחוק webhook: {response.status_code}")
+            return False
+    except Exception as e:
+        logger.warning(f"⚠️ שגיאה במחיקת webhook: {e}")
+        return False
+
+def get_railway_domain():
+    """קבלת דומיין מ-Railway - בדיקה לכל האפשרויות"""
+    # כל המשתנים האפשריים ב-Railway
+    possible_domains = [
+        os.environ.get("RAILWAY_PUBLIC_DOMAIN"),
+        os.environ.get("RAILWAY_STATIC_URL"),
+        os.environ.get("RAILWAY_SERVICE_NAME") + ".railway.internal",
+        os.environ.get("RAILWAY_SERVICE_NAME") + ".up.railway.app",
+    ]
+    
+    for domain in possible_domains:
+        if domain:
+            # ניקוי URL אם יש פרוטוקול
+            if domain.startswith("https://"):
+                domain = domain.replace("https://", "")
+            elif domain.startswith("http://"):
+                domain = domain.replace("http://", "")
+            
+            # הסרת / בסוף
+            domain = domain.rstrip("/")
+            return domain
+    
+    return None
 
 def main():
     """נקודת כניסה ראשית"""
-    print("=" * 60)
-    print("🚀 NFTY ULTRA BOT - Railway Webhook Edition")
-    print("=" * 60)
+    print("=" * 70)
+    print("🚀 NFTY ULTRA BOT - ULTIMATE WEBHOOK FIX")
+    print("=" * 70)
     
     # טען את הטוקן
     try:
@@ -38,42 +78,48 @@ def main():
     if not TELEGRAM_TOKEN or TELEGRAM_TOKEN == "YOUR_BOT_TOKEN_HERE":
         logger.error("❌ TELEGRAM_TOKEN לא הוגדר!")
         print("⚠️ אנא הגדר את TELEGRAM_TOKEN ב-Railway Variables")
+        print("📋 צעדים:")
+        print("   1. ב-Railway Dashboard → BOT1 → Variables")
+        print("   2. לחץ 'New Variable'")
+        print("   3. שם: TELEGRAM_TOKEN")
+        print("   4. ערך: הטוקן האמיתי שלך מהבוט")
         sys.exit(1)
     
     print(f"✅ טוקן תקין: {TELEGRAM_TOKEN[:10]}...")
     
-    try:
-        # צור את האפליקציה
-        app = Application.builder().token(TELEGRAM_TOKEN).build()
+    # שלב 1: מחיקת webhook קיים - קריטי!
+    print("🗑️  מוחק webhook קיים...")
+    delete_existing_webhook(TELEGRAM_TOKEN)
+    
+    # בדיקת סביבה
+    port = int(os.environ.get("PORT", 8080))
+    print(f"🔧 פורט: {port}")
+    
+    # בדיקה אם אנחנו ב-Railway
+    is_railway = bool(os.environ.get("RAILWAY_ENVIRONMENT") or 
+                      os.environ.get("RAILWAY_SERVICE_NAME") or 
+                      os.environ.get("PORT"))
+    
+    # קבלת דומיין
+    domain = get_railway_domain()
+    
+    print(f"🌐 מצב: {'RAILWAY' if is_railway else 'LOCAL'}")
+    print(f"🔗 דומיין: {domain if domain else 'לא נמצא'}")
+    
+    # חייבים webhook ב-Railway!
+    if is_railway and domain:
+        # מצב PRODUCTION עם webhook
+        print(f"🚀 מפעיל ב-webhook mode...")
         
-        # הוסף handlers
-        app.add_handler(CommandHandler("start", start))
-        app.add_error_handler(error_handler)
+        webhook_url = f"https://{domain}/{TELEGRAM_TOKEN}"
+        print(f"🔗 Webhook URL: {webhook_url}")
         
-        # בדוק אם אנחנו ב-Railway (חייבים webhook)
-        railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN")
-        port = int(os.environ.get("PORT", 8080))
-        
-        if railway_domain:
-            # מצב PRODUCTION - חייבים webhook ב-Railway
-            print(f"🌐 PRODUCTION MODE - Railway")
-            print(f"🔗 Domain: {railway_domain}")
-            print(f"🔧 Port: {port}")
+        try:
+            # צור אפליקציה
+            app = Application.builder().token(TELEGRAM_TOKEN).build()
             
-            webhook_url = f"https://{railway_domain}/{TELEGRAM_TOKEN}"
-            print(f"🔗 Webhook URL: {webhook_url}")
-            
-            # מחיקת webhook קיים לפני הגדרת חדש
-            try:
-                import requests
-                delete_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook"
-                response = requests.get(f"{delete_url}?drop_pending_updates=true", timeout=5)
-                if response.status_code == 200:
-                    print("✅ Webhook קיים נמחק")
-                else:
-                    print(f"⚠️ לא ניתן למחוק webhook: {response.status_code}")
-            except Exception as e:
-                print(f"⚠️ שגיאה במחיקת webhook: {e}")
+            # הוסף handlers
+            app.add_handler(CommandHandler("start", start))
             
             # הפעל עם webhook
             app.run_webhook(
@@ -81,24 +127,63 @@ def main():
                 port=port,
                 url_path=TELEGRAM_TOKEN,
                 webhook_url=webhook_url,
-                secret_token=TELEGRAM_TOKEN[:32],  # מונע התנגשויות
+                secret_token=TELEGRAM_TOKEN[:32],
                 drop_pending_updates=True,
                 allowed_updates=["message", "callback_query"]
             )
-        else:
-            # מצב DEVELOPMENT - polling
-            print("💻 DEVELOPMENT MODE - Polling")
-            app.run_polling(
-                drop_pending_updates=True,
-                allowed_updates=["message", "callback_query"],
-                poll_interval=0.5
-            )
             
-    except Exception as e:
-        print(f"❌ שגיאה: {type(e).__name__}: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+        except Exception as e:
+            print(f"❌ שגיאת webhook: {e}")
+            print("🔄 מנסה עם polling כגיבוי...")
+            # נסה עם polling
+            app = Application.builder().token(TELEGRAM_TOKEN).build()
+            app.add_handler(CommandHandler("start", start))
+            app.run_polling(drop_pending_updates=True)
+    
+    elif is_railway and not domain:
+        # ב-Railway אבל אין דומיין - יצירת דומיין אוטומטי
+        print("⚠️  אין דומיין מוגדר, מנסה לקבל אוטומטית...")
+        
+        # נסה להשיג את הדומיין מהסביבה
+        service_name = os.environ.get("RAILWAY_SERVICE_NAME", "bot")
+        project_name = os.environ.get("RAILWAY_PROJECT_NAME", "")
+        
+        if project_name:
+            domain = f"{project_name}-{service_name}.up.railway.app"
+        else:
+            domain = f"{service_name}.up.railway.app"
+        
+        print(f"🔗 דומיין משוער: {domain}")
+        
+        webhook_url = f"https://{domain}/{TELEGRAM_TOKEN}"
+        
+        try:
+            app = Application.builder().token(TELEGRAM_TOKEN).build()
+            app.add_handler(CommandHandler("start", start))
+            
+            app.run_webhook(
+                listen="0.0.0.0",
+                port=port,
+                url_path=TELEGRAM_TOKEN,
+                webhook_url=webhook_url,
+                secret_token=TELEGRAM_TOKEN[:32],
+                drop_pending_updates=True
+            )
+        except Exception as e:
+            print(f"❌ שגיאה: {e}")
+            sys.exit(1)
+    
+    else:
+        # מצב LOCAL עם polling
+        print("💻 מצב LOCAL - משתמש ב-polling")
+        
+        app = Application.builder().token(TELEGRAM_TOKEN).build()
+        app.add_handler(CommandHandler("start", start))
+        app.run_polling(
+            drop_pending_updates=True,
+            allowed_updates=["message", "callback_query"],
+            poll_interval=0.5
+        )
 
 if __name__ == "__main__":
     main()

@@ -31,23 +31,62 @@ Set-Content -Path "README.md" -Value @'
 
 ---
 
-## 🏗️ Architecture
-📁 BOT/
-├── 📁 app/
-│ ├── 📁 bot/ # Welcome and main menu
-│ ├── 📁 core/ # Core functionality (shop, payments, affiliate)
-│ ├── 📁 database/ # Redis CRM manager
-│ └── 📁 games/ # Game engines (mines, slots, crash)
-├── 📁 admin/ # Admin tools and dashboard
-├── 📁 utils/ # Utilities and helpers
-├── Main.py # Main bot entry point
-├── config.py # Configuration and environment
-├── railway.json # Railway deployment config
-└── requirements.txt # Python dependencies
-
+📁 מבנה תיקיות סופי מלא
 text
+BOT/
+├── admin/
+│   ├── __init__.py
+│   ├── dashboard.py
+│   ├── exporter.py
+│   └── tools.py
+├── app/
+│   ├── __init__.py
+│   ├── auth/
+│   │   ├── __init__.py
+│   │   └── roles.py
+│   ├── bot/
+│   │   ├── __init__.py
+│   │   └── welcome.py
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── affiliate.py
+│   │   ├── payment_webhooks.py
+│   │   ├── payments.py
+│   │   └── shop.py
+│   ├── database/
+│   │   ├── __init__.py
+│   │   └── manager.py
+│   ├── games/
+│   │   ├── __init__.py
+│   │   ├── crash.py
+│   │   ├── mines.py
+│   │   ├── slots.py
+│   │   ├── roulette.py      # 🆕 חדש!
+│   │   ├── blackjack.py     # 🆕 חדש!
+│   │   └── dice.py          # 🆕 חדש!
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── helpers.py
+│   │   ├── logger.py
+│   │   ├── daily_tasks.py   # 🆕 חדש!
+│   │   ├── leaderboard.py   # 🆕 חדש!
+│   │   └── themes.py        # 🆕 חדש!
+│   ├── security.py          # 🔄 משודרג!
+│   └── templates.py
+├── scripts/
+│   ├── project_manager.ps1
+│   ├── railway.setup.ps1    # ❗ לא צריך לעלות לגיט!
+│   └── run_tests.ps1
+├── .env.example
+├── .gitattributes
+├── .gitignore              # 🔄 מעודכן!
+├── Main.py                 # 🔄 משודרג!
+├── README.md
+├── config.py
+├── health.py
+├── railway.json
+└── requirements.txt        # 🔄 מעודכן!
 
----
 
 ## 🛠️ Installation
 

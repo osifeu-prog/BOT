@@ -1,82 +1,47 @@
-🎰 מערכת בוט קזינו והשקעות (Production-Ready)
-פרויקט זה הוא מערכת אקולוגית שלמה לבוט טלגרם, הכוללת משחקי קזינו, פלטפורמת השקעות עם תשואה יומית (ROI), ומערכת שיווק שותפים (Referrals) רב-שכבתית.
+# 🎰 Ultimate Casino & Investment Bot
 
-📋 סקירת המערכת
-המערכת בנויה על תשתית אסינכרונית חזקה המאפשרת ביצועים גבוהים:
+Production-ready Telegram bot ecosystem.
 
-שפת פיתוח: Python 3.11.
+## 🚀 Quick Deploy to Railway
 
-ספריית בוט: python-telegram-bot (גרסה 20.7).
+1. **Push to GitHub**:
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/osifeu-prog/BOT.git
+git push -u origin main
+```
 
-מסד נתונים: PostgreSQL עם SQLAlchemy לניהול משתמשים, הימורים, השקעות ועסקאות.
+2. **Railway Setup**:
+   - Connect GitHub repo
+   - Add PostgreSQL database
+   - Set environment variables
+   - Deploy!
 
-ניהול משימות: מנוע רקע המעבד תשואות על השקעות בכל שעה.
+## 🔧 Required Environment Variables
 
-✨ תכונות עיקריות
-🎰 משחקי קזינו: סלוטים (Slots), רולטה (Roulette) וקוביות (Dice) עם אחוזי זכייה ניתנים להגדרה.
+- `TELEGRAM_TOKEN` - Get from @BotFather
+- `ADMIN_ID` - Your Telegram user ID
+- `WEBHOOK_URL` - https://your-app.railway.app
+- `WIN_CHANCE_PERCENT` - Default: 45
 
-💰 פלטפורמת השקעות: שלוש תוכניות השקעה (Bronze, Gold, Whale) עם תשואה יומית משתנה בין 1% ל-2%.
+## 📦 Features
 
-👥 מערכת הפניות (Referrals): מערכת 3 שלבים (10%, 5%, 2%) עם יצירת קישור ייחודי לכל משתמש.
+- 🎰 Casino (Slots, Roulette, Dice)
+- 💰 Investment Platform
+- 👥 3-Level Referral System
+- 🛍️ Internal Shop
+- 🌍 Multi-language (EN/HE/RU)
 
-🌍 תמיכה בשפות: ממשק מלא באנגלית, עברית ורוסית.
+## 📝 Commands
 
-👨‍💼 פאנל ניהול: פקודת /admin למנהלי המערכת (לפי מזהה טלגרם).
+- `/start` - Main menu
+- `/casino` - Play games
+- `/invest` - Investment plans
+- `/balance` - Check balance
+- `/referral` - Referral info
+- `/admin` - Admin panel
 
-🛠️ הוראות התקנה והרצה (פיתוח מקומי)
-1. דרישות קדם
-התקנת Python 3.11 ומעלה.
-
-התקנת PostgreSQL (או שימוש ב-SQLite לבדיקות ראשוניות).
-
-התקנת Redis (לניהול זיכרון ומטמון).
-
-2. הגדרת סביבת עבודה
-פתח את הטרמינל בתיקיית הפרויקט ובצע:
-
-Bash
-
-# יצירת סביבה וירטואלית
-python -m venv venv
-
-# הפעלת הסביבה (Windows)
-venv\Scripts\activate
-
-# התקנת ספריות
-pip install -r requirements.txt
-3. הגדרת משתני סביבה
-צור קובץ בשם .env בתיקייה הראשית והעתק אליו את התוכן מ-.env.example. עדכן את הפרמטרים הבאים:
-
-TELEGRAM_TOKEN: הטוקן שקיבלת מ-@BotFather.
-
-ADMIN_ID: מזהה הטלגרם שלך (כדי לקבל גישת מנהל).
-
-DATABASE_URL: כתובת מסד הנתונים שלך (לדוגמה: postgresql://user:pass@localhost:5432/db).
-
-4. הרצת הבוט
-Bash
-
-python main.py
-🏗️ מבנה הקבצים להמשך פיתוח
-main.py: נקודת הכניסה לאפליקציה. מנהלת אתחול מסד הנתונים והרצת הבוט (Webook או Polling).
-
-bot/config.py: ריכוז כל ההגדרות העסקיות (אחוזי זכייה, ריביות השקעה, עמלות הפניה).
-
-bot/games.py: כאן נמצא הלוגיקה של המשחקים. אם תרצה להוסיף משחק חדש, זה המקום.
-
-bot/handlers.py: ניהול התגובות להודעות המשתמשים וכפתורי ה-Inline.
-
-bot/localization.py: עריכת טקסטים או הוספת שפות חדשות.
-
-bot/background_tasks.py: משימות שרצות ברקע, כמו חלוקת רווחי השקעות כל 24 שעות.
-
-🚀 פריסה ל-Production (Railway)
-הפרויקט מוכן לפריסה מהירה ב-Railway באמצעות הקבצים Dockerfile, railway.json ו-Procfile.
-
-חבר את ה-Repo ל-Railway.
-
-הוסף Database מסוג PostgreSQL.
-
-הגדר את משתני הסביבה ב-Dashboard של Railway.
-
-המערכת תזהה אוטומטית את ה-Dockerfile ותתחיל בבנייה.
+Built for Railway deployment 🚂

@@ -1,4 +1,4 @@
-# צור קובץ README.md עם כל התיעוד
+#  כל התיעוד
 Set-Content -Path "README.md" -Value @'
 # 🎰 NFTY PRO - Telegram Casino & Trading SaaS
 

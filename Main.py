@@ -8,6 +8,7 @@ from app.core.affiliate import show_affiliate_panel
 from app.games.mines import start_mines, handle_mine_click
 from admin.dashboard import send_admin_report, broadcast
 from admin.tools import gift_balance
+from app.security import rate_limiter
 
 async def daily_bonus(update, context):
     query = update.callback_query
@@ -20,6 +21,13 @@ async def daily_bonus(update, context):
 
 async def main_handler(update, context):
     query = update.callback_query
+    uid = query.from_user.id
+
+    # Rate limiting check
+    if not rate_limiter.check_rate_limit(uid):
+        await query.answer("⏳ יותר מדי בקשות, נסה שוב בעוד דקה!", show_alert=True)
+        return
+
     data = query.data
     await query.answer()
 

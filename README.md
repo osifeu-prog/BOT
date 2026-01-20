@@ -1,35 +1,25 @@
 
-# FreePlay Platform MVP
-
-## Overview
-Free-to-play gamified Telegram + Web platform.
-No real money, points only.
+# FreePlay Telegram Platform
 
 ## Features
-- Free games (slots demo)
-- Points-based rewards
-- Shop (access & roles)
-- Admin roles
-- Telegram webhook ready
-- Railway-ready deployment
+- Telegram Bot (Free-to-play games)
+- Points / XP system
+- Anti-spam cooldown
+- Admin Web Dashboard
+- Railway-ready
 
-## Environment Variables
-- ADMIN_USERNAME
-- ADMIN_PASSWORD
+## Env Vars
 - TELEGRAM_TOKEN
-- WEBHOOK_URL
+- BACKEND_URL
 - PORT=8080
 
-## Deployment (Railway)
-1. Upload ZIP or push to GitHub
-2. Create Railway project
-3. Add environment variables
+## Deploy
+1. Push to GitHub
+2. Connect Railway
+3. Set env vars
 4. Deploy
-5. Verify `/health` returns OK
+5. Run bot
 
-## Testing Checklist
-- `/health` -> OK
-- `/games/slots` returns result
-- `/shop/items` returns items
-- Admin login works
-- Railway logs show no errors
+## Test
+- /health
+- /start in Telegram

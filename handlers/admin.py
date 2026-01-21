@@ -13,12 +13,10 @@ async def admin_handler(message):
 
     password = parts[1].strip()
 
-    # אם זה המנהל הראשי — תמיד מאושר
     if user_id == ADMIN_ID:
         add_admin(user_id)
         return await send_message(user_id, "הוגדרת כמנהל ראשי.")
 
-    # בדיקת סיסמה
     if password == ADMIN_PASSWORD:
         add_admin(user_id)
         return await send_message(user_id, "הוספת כמנהל בהצלחה!")

@@ -1,6 +1,16 @@
+"""
+handlers/admin.py
+==================
+מטפל בפקודת /admin.
+
+מטרתו:
+- לאפשר למשתמשים להפוך למנהלים באמצעות סיסמה.
+- אתה (ADMIN_ID) תמיד מאושר אוטומטית.
+"""
+
 from utils.telegram import send_message
 from utils.config import ADMIN_PASSWORD, ADMIN_ID
-from db.admins import add_admin, is_admin
+from db.admins import add_admin
 
 async def admin_handler(message):
     chat = message["chat"]

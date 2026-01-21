@@ -3,7 +3,6 @@
 """
 Router ללחיצות על כפתורי Inline (callback_query).
 """
-
 from callbacks.menu import menu_callback
 from callbacks.course import course_callback
 

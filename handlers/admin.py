@@ -1,37 +1,46 @@
 """
 handlers/admin.py
 ==================
-מטפל בפקודת /admin.
-
-מטרתו:
-- לאפשר למשתמשים להפוך למנהלים באמצעות סיסמה.
-- אתה (ADMIN_ID) תמיד מאושר אוטומטית.
+טיפול בפקודות אדמין, כולל:
+- הוספת אדמין
+- הוספת רוכש (buyer)
 """
 
 from utils.telegram import send_message
-from utils.config import ADMIN_PASSWORD, ADMIN_ID
-from db.admins import add_admin
+from db.admins import add_admin, is_admin
+from db.buyers import add_buyer
+
+ADMIN_PASSWORD = "NFTY2026"  # כמו שכבר השתמשת
 
 async def admin_handler(message):
-    chat = message["chat"]
-    user_id = chat["id"]
+    user_id = message["from"]["id"]
     text = message.get("text", "")
 
-    parts = text.split(" ", 1)
-    if len(parts) < 2:
-        return await send_message(user_id, "יש להזין סיסמה: /admin <password>")
+    # /admin <password>
+    if text.startswith("/admin"):
+        parts = text.split(maxsplit=1)
+        if len(parts) == 2 and parts[1].strip() == ADMIN_PASSWORD:
+            add_admin(user_id)
+            return await send_message(user_id, "✅ אתה עכשיו אדמין.")
+        else:
+            return await send_message(user_id, "❌ סיסמה שגויה.")
 
-    password = parts[1].strip()
+    # מכאן – רק אדמינים
+    if not is_admin(user_id):
+        return await send_message(user_id, "אין לך הרשאות אדמין.")
 
-    # אתה — תמיד מאושר
-    if user_id == ADMIN_ID:
-        add_admin(user_id)
-        return await send_message(user_id, "הוגדרת כמנהל ראשי.")
+    # /grant <user_id>
+    if text.startswith("/grant"):
+        parts = text.split(maxsplit=1)
+        if len(parts) != 2:
+            return await send_message(user_id, "שימוש: /grant <user_id>")
 
-    # סיסמה נכונה → מוסיפים לטבלת admins
-    if password == ADMIN_PASSWORD:
-        add_admin(user_id)
-        return await send_message(user_id, "הוספת כמנהל בהצלחה!")
+        try:
+            target_id = int(parts[1].strip())
+        except ValueError:
+            return await send_message(user_id, "user_id לא תקין.")
 
-    # אחרת → סיסמה שגויה
-    return await send_message(user_id, "סיסמה שגויה.")
+        add_buyer(target_id)
+        return await send_message(user_id, f"✅ המשתמש {target_id} קיבל גישה לקורס.")
+
+    return await send_message(user_id, "פקודת אדמין לא מוכרת.")

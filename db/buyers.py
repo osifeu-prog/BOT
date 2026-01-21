@@ -7,7 +7,6 @@ db/buyers.py
 - לבדוק האם משתמש רכש
 - להוסיף רוכש חדש (אחרי אישור תשלום)
 """
-
 from db.connection import get_conn
 
 def _ensure_table(cur):
@@ -21,12 +20,9 @@ def _ensure_table(cur):
 def is_buyer(user_id: int) -> bool:
     conn = get_conn()
     cur = conn.cursor()
-
     _ensure_table(cur)
-
     cur.execute("SELECT 1 FROM buyers WHERE user_id = %s", (user_id,))
     result = cur.fetchone()
-
     cur.close()
     conn.close()
     return result is not None
@@ -34,14 +30,11 @@ def is_buyer(user_id: int) -> bool:
 def add_buyer(user_id: int):
     conn = get_conn()
     cur = conn.cursor()
-
     _ensure_table(cur)
-
     cur.execute(
         "INSERT INTO buyers (user_id) VALUES (%s) ON CONFLICT DO NOTHING",
         (user_id,)
     )
-
     conn.commit()
     cur.close()
     conn.close()

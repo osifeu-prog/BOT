@@ -8,6 +8,7 @@ EN: Main entry point of the bot — FastAPI + Webhook.
 from fastapi import FastAPI, Request
 from handlers.router import handle_message
 from handlers.callback_router import handle_callback
+from utils.edu_log import edu_step
 
 app = FastAPI()
 
@@ -26,8 +27,7 @@ async def webhook(request: Request):
     EN: Webhook endpoint — Telegram sends every update here (message / callback).
     """
     data = await request.json()
-    print("Incoming:", data)  # HE: לוג לדיבוג | EN: Debug log
-
+    edu_step(1, f"Incoming update: {data}")
     # HE: הודעת טקסט / מדיה
     # EN: Text / media message
     if "message" in data:
@@ -38,6 +38,4 @@ async def webhook(request: Request):
     if "callback_query" in data:
         await handle_callback(data["callback_query"])
 
-    # HE: טלגרם דורש תשובה כלשהי כדי לא לנסות שוב.
-    # EN: Telegram requires a response to avoid retrying.
     return {"ok": True}

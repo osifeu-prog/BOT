@@ -1,23 +1,8 @@
-"""
-callbacks/menu.py
-==================
-מטפל בכל כפתורי התפריט (Inline Keyboard).
-
-data (callback_data) יכול להיות:
-- menu_buy
-- menu_course
-- menu_how
-- menu_ui
-- menu_slots
-- menu_leaders
-- menu_help
-"""
-
 from utils.telegram import send_message
 from texts.payment import get_payment_message
 from texts.how_it_works import HOW_IT_WORKS
 from texts.telegram_ui import TELEGRAM_UI_EXPLAINER
-from texts.course_links import COURSE_LINKS
+from buttons.menus import get_course_menu
 from db.events import log_event
 from handlers.slots import play_slots, show_leaderboard
 
@@ -26,14 +11,15 @@ async def menu_callback(callback):
     data = callback["data"]
     chat = callback["message"]["chat"]
 
-    # רישום האירוע ב-DB
     log_event(user_id, "button", data)
 
     if data == "menu_buy":
         return await send_message(user_id, get_payment_message())
 
     if data == "menu_course":
-        return await send_message(user_id, COURSE_LINKS)
+        # שולח תפריט קורס
+        reply_markup = {"inline_keyboard": get_course_menu()}
+        return await send_message(user_id, "📚 בחר שיעור מתוך הקורס:", reply_markup=reply_markup)
 
     if data == "menu_how":
         return await send_message(user_id, HOW_IT_WORKS)

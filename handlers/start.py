@@ -1,20 +1,17 @@
-from utils.telegram import send_message, send_photo
-from texts.messages import TEXTS
-from buttons.menus import BUTTONS
-from utils.photos import START_PHOTO_URL
+from utils.telegram import send_photo
+from texts.messages import get_welcome_text
+from buttons.menus import get_main_menu
+from utils.config import START_PHOTO_URL
 from db.events import log_event
 
 async def start_handler(chat):
     user_id = chat["id"]
     name = chat.get("first_name", "חבר")
+    lang = chat.get("language_code", "he")
 
     log_event(user_id, "command", "/start")
 
-    # שליחת תמונה
-    await send_photo(user_id, START_PHOTO_URL)
+    text = get_welcome_text(lang, name)
+    reply_markup = {"inline_keyboard": [get_main_menu(lang)]}
 
-    # שליחת טקסט + תפריט
-    text = TEXTS["welcome"].format(name=name)
-    reply_markup = {"inline_keyboard": [BUTTONS["main_menu"]]}
-
-    await send_message(user_id, text, reply_markup=reply_markup)
+    await send_photo(user_id, START_PHOTO_URL, caption=text, reply_markup=reply_markup)

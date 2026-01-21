@@ -1,34 +1,25 @@
 """
-handlers/start.py
-==================
-מטפל בפקודת /start.
+handlers/callback_router.py
+============================
+Router ללחיצות על כפתורי Inline (callback_query).
 
 מטרתו:
-- לרשום אירוע ב-DB
-- לבנות טקסט פתיחה שיווקי
-- לבנות תפריט כפתורים
-- לשלוח תמונה + טקסט + תפריט
+- לקבל callback_query
+- להעביר ל-menu_callback אם זה כפתור תפריט
 """
 
-from utils.telegram import send_photo
-from texts.messages import get_welcome_text
-from buttons.menus import get_main_menu
-from utils.config import START_PHOTO_URL
-from db.events import log_event
+from callbacks.menu import menu_callback
 
-async def start_handler(chat):
-    user_id = chat["id"]
-    name = chat.get("first_name", "חבר")
-    lang = chat.get("language_code", "he")
+async def handle_callback(callback):
+    """
+    הפונקציה הזו נקראת מתוך main.py
+    והיא אחראית לטפל בכל callback_query שמגיע מטלגרם.
+    """
+    data = callback["data"]
 
-    # רישום האירוע ב-DB
-    log_event(user_id, "command", "/start")
+    # כל כפתור שמתחיל ב-menu_ עובר ל-menu_callback
+    if data.startswith("menu_"):
+        return await menu_callback(callback)
 
-    # טקסט פתיחה מותאם שפה + שם
-    text = get_welcome_text(lang, name)
-
-    # בניית תפריט כפתורים
-    reply_markup = {"inline_keyboard": [get_main_menu(lang)]}
-
-    # שליחת תמונה + טקסט + תפריט
-    await send_photo(user_id, START_PHOTO_URL, caption=text, reply_markup=reply_markup)
+    # ברירת מחדל — אם בעתיד יהיו callbackים אחרים
+    # אפשר להוסיף כאן תנאים נוספים.

@@ -1,3 +1,15 @@
+"""
+handlers/start.py
+==================
+מטפל בפקודת /start.
+
+מטרתו:
+- לרשום אירוע ב-DB
+- לבנות טקסט פתיחה שיווקי
+- לבנות תפריט כפתורים
+- לשלוח תמונה + טקסט + תפריט
+"""
+
 from utils.telegram import send_photo
 from texts.messages import get_welcome_text
 from buttons.menus import get_main_menu

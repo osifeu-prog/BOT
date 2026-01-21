@@ -1,5 +1,16 @@
+"""
+buttons/menus.py
+=================
+מגדיר את תפריט הכפתורים הראשי של הבוט.
+"""
+
 def get_main_menu(lang: str = "he"):
-    # אפשר להרחיב לשפות נוספות בעתיד
+    """
+    מחזיר רשימת כפתורים לתפריט הראשי.
+
+    כרגע השפה לא משנה את הטקסטים,
+    אבל אפשר להרחיב בעתיד לפי lang.
+    """
     return [
         {"text": "📦 רכישת הפרויקט", "callback_data": "menu_buy"},
         {"text": "📘 איך הבוט עובד?", "callback_data": "menu_how"},

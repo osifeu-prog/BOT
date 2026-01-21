@@ -1,12 +1,18 @@
-# handlers/callback_router.py
+"""
+callback_router.py
+==================
+HE: מנתב לחיצות על כפתורי Inline לפונקציות המתאימות.
+EN: Routes inline button clicks to the appropriate handlers.
+"""
 
-"""
-Router ללחיצות על כפתורי Inline (callback_query).
-"""
 from callbacks.menu import menu_callback
 from callbacks.course import course_callback
 
-async def handle_callback(callback):
+async def handle_callback(callback: dict):
+    """
+    HE: נקודת הכניסה לכל callback_query.
+    EN: Entry point for every callback_query.
+    """
     data = callback["data"]
 
     if data.startswith("menu_"):

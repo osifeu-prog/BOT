@@ -1,6 +1,19 @@
+"""
+db/admins.py
+=============
+ניהול טבלת המנהלים (admins).
+
+מטרתו:
+- לבדוק האם משתמש הוא מנהל
+- להוסיף מנהל חדש
+"""
+
 from db.connection import get_conn
 
 def is_admin(user_id):
+    """
+    בודק האם user_id קיים בטבלת admins.
+    """
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
@@ -16,6 +29,9 @@ def is_admin(user_id):
     return result is not None
 
 def add_admin(user_id):
+    """
+    מוסיף משתמש לטבלת admins (אם הוא לא קיים כבר).
+    """
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(

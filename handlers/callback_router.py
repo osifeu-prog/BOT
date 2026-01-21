@@ -1,8 +1,11 @@
-# handlers/callback_router.py
-
 """
-Router ללחיצות על כפתורי Inline.
-פתוח לכולם — אין סינון לפי מנהלים.
+handlers/callback_router.py
+============================
+Router ללחיצות על כפתורי Inline (callback_query).
+
+מטרתו:
+- לקבל callback_query
+- להעביר ל-menu_callback אם זה כפתור תפריט
 """
 
 from callbacks.menu import menu_callback

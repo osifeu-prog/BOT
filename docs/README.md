@@ -36,7 +36,6 @@ markdown
 
 ## שלב 1 — שכפול הפרויקט
 
-```bash
 git clone <repo-url>
 cd project
 pip install -r requirements.txt
@@ -167,3 +166,27 @@ text
 - השתמש באימוג'ים במידה
 - תן תמיד פידבק אחרי פעולה (למשל: "קיבלתי", "אושר", "נשלח")
 - ודא שתמיד יש דרך "לחזור להתחלה" (/start)
+
+
+
+3. תרשים זרימה נוסף — תיעוד כל פעולה
+text
+משתמש שולח הודעה
+    ↓
+Telegram → /webhook → main.py
+    ↓
+handlers/router.py
+    ↓
+db/events.log_event(...)
+    ↓
+טבלת user_events
+
+משתמש הופך למנהל
+    ↓
+/admin <password>
+    ↓
+handlers/admin.py
+    ↓
+db/admins.add_admin(...)
+    ↓
+טבלת admins

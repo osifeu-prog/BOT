@@ -1,53 +1,71 @@
 """
 main.py
 ========
-זה קובץ הכניסה של הבוט.
+זהו קובץ הכניסה הראשי של הבוט.
 
 מה הוא עושה?
-- מגדיר אפליקציית FastAPI
-- מגדיר את ה-endpoint /webhook שאליו טלגרם שולח עדכונים
-- קורא את ה-JSON שמגיע מטלגרם
-- מזהה אם מדובר בהודעה רגילה (message) או לחיצה על כפתור (callback_query)
-- מעביר את הטיפול לקבצים המתאימים:
-  - handle_message להודעות טקסט / מדיה
-  - handle_callback ללחיצות על כפתורי Inline
+-------------
+1. מגדיר אפליקציית FastAPI — מסגרת פייתון ליצירת API.
+2. מגדיר את ה־Webhook — הכתובת שטלגרם שולח אליה עדכונים.
+3. מקבל כל עדכון מטלגרם (הודעה / כפתור).
+4. מנתב את העדכון לקבצים המתאימים:
+   - handle_message  → הודעות טקסט / מדיה
+   - handle_callback → לחיצות על כפתורי Inline
+5. מחזיר תשובה לטלגרם כדי לא לקבל שגיאות.
+
+זהו "שער הכניסה" של כל המערכת.
 """
 
 from fastapi import FastAPI, Request
 from handlers.router import handle_message
 from handlers.callback_router import handle_callback
 
+# יוצרים אפליקציית FastAPI
 app = FastAPI()
+
 
 @app.get("/")
 def home():
     """
-    נקודת בדיקה פשוטה.
+    נקודת בדיקה פשוטה (Health Check).
 
-    למה זה טוב?
-    - כדי לבדוק שהשרת חי (Health Check)
-    - אפשר לפתוח את ה-URL בדפדפן ולראות שהבוט רץ
+    למה צריך את זה?
+    ----------------
+    - Railway / Render / Heroku בודקים שהשרת חי.
+    - אתה יכול לפתוח את הכתובת בדפדפן ולראות שהבוט רץ.
     """
     return {"status": "Bot is running"}
+
 
 @app.post("/webhook")
 async def webhook(request: Request):
     """
-    זו הפונקציה שטלגרם קורא לה בכל פעם שיש עדכון חדש.
+    זהו ה־Webhook של הבוט.
+
+    כל פעם שמשתמש שולח הודעה לבוט — טלגרם שולח לכאן JSON.
 
     מה קורה כאן?
-    1. קוראים את גוף הבקשה כ-JSON.
-    2. אם יש "message" → מעבירים ל-handle_message.
-    3. אם יש "callback_query" → מעבירים ל-handle_callback.
-    4. מחזירים {"ok": True} כדי שטלגרם ידע שהכל עבר בהצלחה.
+    -------------
+    1. קוראים את גוף הבקשה (JSON).
+    2. בודקים אם מדובר בהודעה רגילה (message).
+    3. בודקים אם מדובר בלחיצה על כפתור (callback_query).
+    4. מעבירים את העדכון ל־handlers המתאימים.
+    5. מחזירים {"ok": True} כדי שטלגרם ידע שהכל עבר בהצלחה.
+
+    חשוב:
+    ------
+    אם הפונקציה הזו לא מחזירה תשובה — טלגרם יחשוב שהבוט מת.
     """
     data = await request.json()
-    print("Incoming:", data)  # לוג לצורך דיבוג
+    print("Incoming:", data)  # לוג חשוב לדיבוג
 
+    # הודעת טקסט / מדיה
     if "message" in data:
         await handle_message(data["message"])
 
+    # לחיצה על כפתור Inline
     if "callback_query" in data:
         await handle_callback(data["callback_query"])
 
+    # טלגרם דורש תשובה כלשהי
     return {"ok": True}

@@ -1,17 +1,8 @@
-"""
-handlers/router.py
-===================
-זה ה-"Router" הראשי של הודעות טקסט.
+# handlers/router.py
 
-מטרתו:
-- לקבל כל message מטלגרם
-- להחליט מה לעשות איתו:
-  - /admin → admin_handler
-  - "אושר" → send_zip
-  - /slots → play_slots
-  - /leaders → show_leaderboard
-  - /start → start_handler
-  - כל דבר אחר → echo_handler
+"""
+Router להודעות טקסט.
+פתוח לכולם — מנהלים יקבלו יכולות נוספות בהמשך, אבל אף אחד לא נחסם.
 """
 
 from handlers.start import start_handler
@@ -19,9 +10,6 @@ from handlers.echo import echo_handler
 from handlers.admin import admin_handler
 from handlers.send_zip import send_zip
 from handlers.slots import play_slots, show_leaderboard
-from db.admins import is_admin
-from utils.config import ADMIN_ID
-from utils.telegram import send_message
 
 async def handle_message(message):
     chat = message["chat"]
@@ -43,10 +31,6 @@ async def handle_message(message):
     # טבלת מובילים
     if text == "/leaders":
         return await show_leaderboard(chat)
-
-    # בדיקת הרשאה — רק מנהלים (או אתה) יכולים להשתמש בבוט
-    if not is_admin(user_id) and user_id != ADMIN_ID:
-        return await send_message(user_id, "אין לך הרשאה להשתמש בבוט.")
 
     # התחלה — /start
     if text == "/start":

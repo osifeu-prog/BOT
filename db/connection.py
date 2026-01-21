@@ -14,4 +14,10 @@ import psycopg2
 from utils.config import DB_URL
 
 def get_conn():
+    """
+    יוצר ומחזיר חיבור חדש למסד הנתונים.
+
+    חשוב:
+    - כל שימוש ב-DB צריך לסגור את החיבור בסוף.
+    """
     return psycopg2.connect(DB_URL)

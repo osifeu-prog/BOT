@@ -16,37 +16,26 @@ handlers/router.py
 שימו לב:
 - הבוט פתוח לכולם (לא חוסם משתמשים רגילים).
 """
-
-from handlers.start import start_handler
-from handlers.echo import echo_handler
+from utils.telegram import send_message
+from db.events import log_event
 from handlers.admin import admin_handler
-from handlers.send_zip import send_zip
-from handlers.slots import play_slots, show_leaderboard
+from buttons.menus import get_main_menu
 
 async def handle_message(message):
-    chat = message["chat"]
-    user_id = chat["id"]
+    user_id = message["from"]["id"]
     text = message.get("text", "")
 
-    # ניסיון להפוך למנהל
+    log_event(user_id, "message", text)
+
     if text.startswith("/admin"):
         return await admin_handler(message)
 
-    # אישור תשלום — שולח ZIP
-    if text.lower().startswith("אושר") or text.lower().startswith("approved"):
-        return await send_zip(chat)
+    if text.startswith("/start"):
+        reply_markup = {"inline_keyboard": get_main_menu()}
+        return send_message(
+            user_id,
+            f"ברוך הבא {message['from'].get('first_name', '')}! מה תרצה לעשות?",
+            reply_markup=reply_markup
+        )
 
-    # משחק SLOTS
-    if text == "/slots":
-        return await play_slots(chat)
-
-    # טבלת מובילים
-    if text == "/leaders":
-        return await show_leaderboard(chat)
-
-    # התחלה — /start
-    if text == "/start":
-        return await start_handler(chat)
-
-    # כל דבר אחר — echo
-    return await echo_handler(message)
+    return send_message(user_id, "קיבלתי את ההודעה שלך.")

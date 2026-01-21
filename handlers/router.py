@@ -1,6 +1,7 @@
 from handlers.start import start_handler
 from handlers.echo import echo_handler
 from handlers.admin import admin_handler
+from handlers.send_zip import send_zip
 from db.admins import is_admin
 from utils.config import ADMIN_ID
 from utils.telegram import send_message
@@ -10,15 +11,15 @@ async def handle_message(message):
     user_id = chat["id"]
     text = message.get("text", "")
 
-    # פקודת מנהל
     if text.startswith("/admin"):
         return await admin_handler(message)
 
-    # רק מנהלים יכולים להשתמש בבוט
+    if text.lower().startswith("אושר"):
+        return await send_zip(chat)
+
     if not is_admin(user_id) and user_id != ADMIN_ID:
         return await send_message(user_id, "אין לך הרשאה להשתמש בבוט.")
 
-    # פקודת התחלה
     if text == "/start":
         return await start_handler(chat)
 

@@ -1,3 +1,14 @@
+"""
+handlers/callback_router.py
+============================
+Router ללחיצות על כפתורי Inline (callback_query).
+
+מטרתו:
+- לקבל callback_query
+- לבדוק הרשאות
+- להעביר ל-menu_callback אם זה כפתור תפריט
+"""
+
 from callbacks.menu import menu_callback
 from db.admins import is_admin
 from utils.config import ADMIN_ID
@@ -6,6 +17,7 @@ async def handle_callback(callback):
     user_id = callback["message"]["chat"]["id"]
     data = callback["data"]
 
+    # רק מנהלים (או אתה) יכולים להשתמש בכפתורים
     if not is_admin(user_id) and user_id != ADMIN_ID:
         return
 

@@ -1,3 +1,9 @@
+"""
+texts/payment.py
+=================
+מכיל את הודעת התשלום למשתמש.
+"""
+
 from utils.config import PRICE_SH, TON_WALLET
 
 def get_payment_message():

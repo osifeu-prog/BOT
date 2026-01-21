@@ -51,6 +51,7 @@ async def play_slots(chat):
     else:
         text += "\n😢 לא זכית הפעם..."
 
+    # שמירת התוצאה ב-DB + Redis
     add_slots_result(user_id, slots, score)
 
     await send_message(user_id, text)

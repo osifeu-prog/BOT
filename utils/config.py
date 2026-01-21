@@ -1,13 +1,14 @@
 import os
 
-# טוקן של הבוט (מ‑Railway)
+# טוקן של הבוט
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 API_URL = f"https://api.telegram.org/bot{TOKEN}"
 
-# רשימת משתמשים מורשים (מ‑Railway)
-# לדוגמה: ALLOWED_USERS="224223270,111111111"
-allowed = os.getenv("ALLOWED_USERS", "")
-ALLOWED_USERS = [int(x) for x in allowed.split(",") if x.strip().isdigit()]
+# מזהה המנהל הראשי (רק אתה)
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 
-# חיבור למסד הנתונים (מ‑Railway)
+# סיסמת מנהל — משתמשים שיזינו אותה יהפכו למנהלים
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+
+# חיבור למסד הנתונים
 DB_URL = os.getenv("DATABASE_URL")

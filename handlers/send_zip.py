@@ -1,3 +1,9 @@
+"""
+handlers/send_zip.py
+=====================
+אחראי על שליחת קישור ה-ZIP למשתמש לאחר אישור תשלום.
+"""
+
 from utils.telegram import send_message
 from utils.config import ZIP_LINK
 

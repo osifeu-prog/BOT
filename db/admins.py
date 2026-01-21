@@ -1,18 +1,35 @@
-# db/admins.py
+"""
+db/admins.py
+=============
+ניהול טבלת המנהלים (admins).
+
+מטרתו:
+- לבדוק האם משתמש הוא מנהל
+- להוסיף מנהל חדש
+- לדאוג שהטבלה תמיד קיימת לפני INSERT/SELECT
+"""
 
 from db.connection import get_conn
 
-def is_admin(user_id):
-    conn = get_conn()
-    cur = conn.cursor()
-
-    # יצירת הטבלה אם לא קיימת
+def _ensure_table(cur):
+    """
+    יוצרת את טבלת admins אם היא לא קיימת.
+    """
     cur.execute("""
         CREATE TABLE IF NOT EXISTS admins (
             user_id BIGINT PRIMARY KEY,
             created_at TIMESTAMP DEFAULT NOW()
         )
     """)
+
+def is_admin(user_id):
+    """
+    בודק האם user_id קיים בטבלת admins.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+
+    _ensure_table(cur)
 
     cur.execute("SELECT 1 FROM admins WHERE user_id = %s", (user_id,))
     result = cur.fetchone()
@@ -21,18 +38,14 @@ def is_admin(user_id):
     conn.close()
     return result is not None
 
-
 def add_admin(user_id):
+    """
+    מוסיף משתמש לטבלת admins (אם הוא לא קיים כבר).
+    """
     conn = get_conn()
     cur = conn.cursor()
 
-    # יצירת הטבלה אם לא קיימת
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS admins (
-            user_id BIGINT PRIMARY KEY,
-            created_at TIMESTAMP DEFAULT NOW()
-        )
-    """)
+    _ensure_table(cur)
 
     cur.execute(
         "INSERT INTO admins (user_id) VALUES (%s) ON CONFLICT DO NOTHING",

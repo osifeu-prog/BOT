@@ -5,6 +5,7 @@ callbacks/menu.py
 
 data (callback_data) יכול להיות:
 - menu_buy
+- menu_course
 - menu_how
 - menu_ui
 - menu_slots
@@ -16,6 +17,7 @@ from utils.telegram import send_message
 from texts.payment import get_payment_message
 from texts.how_it_works import HOW_IT_WORKS
 from texts.telegram_ui import TELEGRAM_UI_EXPLAINER
+from texts.course_links import COURSE_LINKS
 from db.events import log_event
 from handlers.slots import play_slots, show_leaderboard
 
@@ -24,11 +26,14 @@ async def menu_callback(callback):
     data = callback["data"]
     chat = callback["message"]["chat"]
 
+    # רישום האירוע ב-DB
     log_event(user_id, "button", data)
 
     if data == "menu_buy":
-        msg = get_payment_message()
-        return await send_message(user_id, msg)
+        return await send_message(user_id, get_payment_message())
+
+    if data == "menu_course":
+        return await send_message(user_id, COURSE_LINKS)
 
     if data == "menu_how":
         return await send_message(user_id, HOW_IT_WORKS)

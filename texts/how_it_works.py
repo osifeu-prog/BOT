@@ -1,3 +1,21 @@
+"""
+texts/how_it_works.py
+======================
+מכיל את ההסבר "מפת־על: איך הבוט עובד".
+
+כאן אתה מדביק את הטקסט הארוך שהגדרת:
+- /start → router → start_handler
+- callback → callback_router → menu_callback
+- /admin → admin_handler
+- "אושר" → send_zip
+- רישום ב-DB וכו'.
+"""
+
+HOW_IT_WORKS = """
+🧠 מפת־על: איך הבוט שלך עובד — מההתחלה ועד הסוף
+
+(כאן תדביק את כל הטקסט המלא שכתבת)
+"""
 HOW_IT_WORKS = """
 🧠 מפת־על: איך הבוט עובד — מההתחלה ועד הסוף
 

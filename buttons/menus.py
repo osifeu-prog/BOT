@@ -3,22 +3,18 @@ buttons/menus.py
 =================
 תפריטים ראשיים ותפריט קורס.
 """
-
-def get_main_menu(lang: str = "he"):
+def get_main_menu():
     return [
-        {"text": "📦 רכישת הפרויקט", "callback_data": "menu_buy"},
-        {"text": "📚 קורס מלא — כל הקבצים", "callback_data": "menu_course"},
-        {"text": "🧠 איך הבוט עובד?", "callback_data": "menu_how"},
-        {"text": "🎛 איך טלגרם עובד?", "callback_data": "menu_ui"},
-        {"text": "🎰 שחק SLOTS", "callback_data": "menu_slots"},
-        {"text": "🏆 טבלת מובילים", "callback_data": "menu_leaders"},
-        {"text": "❓ תמיכה", "callback_data": "menu_help"},
+        [{"text": "📦 רכישת הפרויקט", "callback_data": "menu_buy"}],
+        [{"text": "📚 קורס מלא — כל הקבצים", "callback_data": "menu_course"}],
+        [{"text": "🧠 איך הבוט עובד?", "callback_data": "menu_how"}],
+        [{"text": "🎛 איך טלגרם עובד?", "callback_data": "menu_ui"}],
+        [{"text": "🎰 שחק SLOTS", "callback_data": "menu_slots"}],
+        [{"text": "🏆 טבלת מובילים", "callback_data": "menu_leaders"}],
+        [{"text": "❓ תמיכה", "callback_data": "menu_help"}],
     ]
 
 def get_course_menu():
-    """
-    תפריט הקורס — כל השיעורים.
-    """
     return [
         [{"text": "📘 מדריך התקנה", "callback_data": "course|INSTALL|0"}],
         [{"text": "🧠 איך הבוט עובד", "callback_data": "course|HOW_IT_WORKS|0"}],

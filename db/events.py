@@ -1,14 +1,12 @@
 """
-db/events.py
-=============
-אחראי על רישום כל פעולה של המשתמש בטבלת user_events.
+events.py
+=========
+HE: לוג אירועים — מעקב אחרי מה שהמשתמשים עושים.
+EN: Events log — tracking what users do.
+"""
 
-למה זה חשוב?
-- מעקב אחרי שימוש בבוט
-- סטטיסטיקות
-- ניתוח התנהגות משתמשים
-- בסיס ל-Dashboard עתידי
-"""from db.connection import get_conn
+from db.connection import get_conn
+from utils.edu_log import edu_step
 
 def _ensure_table(cur):
     cur.execute("""
@@ -21,7 +19,12 @@ def _ensure_table(cur):
         )
     """)
 
-def log_event(user_id: int, event_type: str, data: str = None):
+def log_event(user_id: int, event_type: str, data: str | None = None):
+    """
+    HE: רושם אירוע חדש בטבלה.
+    EN: Logs a new event in the table.
+    """
+    edu_step(1, f"Logging event: user={user_id}, type={event_type}")
     conn = get_conn()
     cur = conn.cursor()
     _ensure_table(cur)

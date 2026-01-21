@@ -4,17 +4,3 @@ httpx
 psycopg2-binary
 redis
 python-dotenv
-#
-הסבר:
-
-fastapi — ה־framework שמקבל את ה־Webhook מטלגרם.
-
-uvicorn — השרת שמריץ את FastAPI ב־Railway.
-
-httpx — לשליחת בקשות HTTP ל־Telegram API.
-
-psycopg2-binary — חיבור ל־PostgreSQL.
-
-redis — ניקוד חי למשחק SLOTS + Leaderboard.
-
-python-dotenv — שימושי אם תרצה לטעון משתני סביבה מקובץ .env מקומית.

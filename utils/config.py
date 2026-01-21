@@ -1,12 +1,10 @@
 """
-utils/config.py
-================
-קובץ הקונפיגורציה של הבוט.
-
-מטרתו:
-- לרכז את כל משתני הסביבה (ENV) במקום אחד.
-- לאפשר שינוי הגדרות (מחיר, קישורים, טוקן וכו') בלי לגעת בקוד.
+config.py
+=========
+HE: קובץ קונפיגורציה מרכזי — טוקן, DB, Redis, פרטי קשר.
+EN: Central configuration file — token, DB, Redis, contact details.
 """
+
 import os
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -17,8 +15,16 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 OWNER_PHONE = "0584203384"
 OWNER_EMAIL = "kaufmanungar@gmail.com"
-SUPPORT_CONTACT_TEXT = (
+OWNER_TELEGRAM = "@osifeu_prog"
+
+SUPPORT_CONTACT_TEXT_HE = (
     f"📞 טלפון: {OWNER_PHONE}\n"
     f"📧 מייל: {OWNER_EMAIL}\n"
-    f"טלגרם: @osifeu_prog"
+    f"טלגרם: {OWNER_TELEGRAM}"
+)
+
+SUPPORT_CONTACT_TEXT_EN = (
+    f"📞 Phone: {OWNER_PHONE}\n"
+    f"📧 Email: {OWNER_EMAIL}\n"
+    f"Telegram: {OWNER_TELEGRAM}"
 )

@@ -8,42 +8,27 @@ db/events.py
 - סטטיסטיקות
 - ניתוח התנהגות משתמשים
 - בסיס ל-Dashboard עתידי
-"""
+"""from db.connection import get_conn
 
-from db.connection import get_conn
-
-def log_event(user_id, event_type, event_key, payload=None):
-    """
-    רושם אירוע חדש בטבלה user_events.
-
-    user_id — מזהה המשתמש
-    event_type — סוג האירוע (command / button / message)
-    event_key — מה בדיוק קרה ("/start", "menu_buy" וכו')
-    payload — מידע נוסף (למשל טקסט ההודעה)
-    """
-    conn = get_conn()
-    cur = conn.cursor()
-
-    # יצירת הטבלה אם היא לא קיימת
-    cur.execute(
-        '''
+def _ensure_table(cur):
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS user_events (
             id SERIAL PRIMARY KEY,
             user_id BIGINT NOT NULL,
-            event_type VARCHAR(50) NOT NULL,
-            event_key TEXT NOT NULL,
-            payload TEXT,
+            event_type TEXT NOT NULL,
+            data TEXT,
             created_at TIMESTAMP DEFAULT NOW()
         )
-        '''
-    )
+    """)
 
-    # הכנסת האירוע לטבלה
+def log_event(user_id: int, event_type: str, data: str = None):
+    conn = get_conn()
+    cur = conn.cursor()
+    _ensure_table(cur)
     cur.execute(
-        "INSERT INTO user_events (user_id, event_type, event_key, payload) VALUES (%s, %s, %s, %s)",
-        (user_id, event_type, event_key, payload)
+        "INSERT INTO user_events (user_id, event_type, data) VALUES (%s, %s, %s)",
+        (user_id, event_type, data)
     )
-
     conn.commit()
     cur.close()
     conn.close()

@@ -12,9 +12,6 @@ db/admins.py
 from db.connection import get_conn
 
 def _ensure_table(cur):
-    """
-    יוצרת את טבלת admins אם היא לא קיימת.
-    """
     cur.execute("""
         CREATE TABLE IF NOT EXISTS admins (
             user_id BIGINT PRIMARY KEY,
@@ -23,35 +20,23 @@ def _ensure_table(cur):
     """)
 
 def is_admin(user_id):
-    """
-    בודק האם user_id קיים בטבלת admins.
-    """
     conn = get_conn()
     cur = conn.cursor()
-
     _ensure_table(cur)
-
     cur.execute("SELECT 1 FROM admins WHERE user_id = %s", (user_id,))
     result = cur.fetchone()
-
     cur.close()
     conn.close()
     return result is not None
 
 def add_admin(user_id):
-    """
-    מוסיף משתמש לטבלת admins (אם הוא לא קיים כבר).
-    """
     conn = get_conn()
     cur = conn.cursor()
-
     _ensure_table(cur)
-
     cur.execute(
         "INSERT INTO admins (user_id) VALUES (%s) ON CONFLICT DO NOTHING",
         (user_id,)
     )
-
     conn.commit()
     cur.close()
     conn.close()

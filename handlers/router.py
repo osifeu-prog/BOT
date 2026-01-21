@@ -10,6 +10,7 @@ from db.events import log_event
 from handlers.admin import admin_handler
 from buttons.menus import get_main_menu
 from utils.i18n import detect_language_from_telegram, t
+from utils.edu_log import edu_step, edu_path
 
 async def handle_message(message: dict):
     """
@@ -21,16 +22,21 @@ async def handle_message(message: dict):
     language_code = message["from"].get("language_code")
     lang = detect_language_from_telegram(language_code)
 
+    edu_path("USER → MESSAGE_HANDLER")
+    edu_step(1, f"Received message from user {user_id}: {text!r}")
+
     log_event(user_id, "message", text)
 
     # HE: פקודת אדמין
     # EN: Admin command
     if text.startswith("/admin"):
+        edu_path("USER → MESSAGE_HANDLER → ADMIN_HANDLER")
         return await admin_handler(message, lang)
 
     # HE: התחלה /start
     # EN: Start command
     if text.startswith("/start"):
+        edu_path("USER → MESSAGE_HANDLER → MAIN_MENU")
         reply_markup = {"inline_keyboard": get_main_menu(lang)}
         welcome_text = t(
             lang,
@@ -41,6 +47,7 @@ async def handle_message(message: dict):
 
     # HE: ברירת מחדל — הודעה כללית
     # EN: Default fallback message
+    edu_path("USER → MESSAGE_HANDLER → DEFAULT_REPLY")
     default_text = t(
         lang,
         he="קיבלתי את ההודעה שלך.",

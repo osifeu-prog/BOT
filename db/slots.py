@@ -1,13 +1,12 @@
 """
-db/slots.py
-============
-אחראי על שמירת תוצאות משחק ה-SLOTS.
-
-שני מקומות:
-1. PostgreSQL — היסטוריה מלאה של כל משחק.
-2. Redis — ניקוד חי לטבלת מובילים (leaderboard).
+slots.py
+========
+HE: טבלת היסטוריית משחק SLOTS.
+EN: Slots game history table.
 """
+
 from db.connection import get_conn
+from utils.edu_log import edu_step
 
 def _ensure_table(cur):
     cur.execute("""
@@ -20,6 +19,11 @@ def _ensure_table(cur):
     """)
 
 def add_slots_result(user_id: int, result: str):
+    """
+    HE: מוסיף תוצאה חדשה למשחק.
+    EN: Adds a new game result.
+    """
+    edu_step(1, f"Adding slots result for user {user_id}: {result}")
     conn = get_conn()
     cur = conn.cursor()
     _ensure_table(cur)
@@ -32,6 +36,11 @@ def add_slots_result(user_id: int, result: str):
     conn.close()
 
 def get_leaderboard(limit: int = 10):
+    """
+    HE: מחזיר טבלת מובילים לפי מספר משחקים.
+    EN: Returns leaderboard by number of games played.
+    """
+    edu_step(1, "Fetching leaderboard.")
     conn = get_conn()
     cur = conn.cursor()
     _ensure_table(cur)

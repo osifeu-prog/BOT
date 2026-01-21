@@ -1,6 +1,6 @@
+# handlers/callback_router.py
+
 """
-handlers/callback_router.py
-============================
 Router ללחיצות על כפתורי Inline (callback_query).
 """
 

@@ -9,15 +9,8 @@ db/connection.py
 - מריצה שאילתות
 - סוגרת חיבור
 """
-
 import psycopg2
-from utils.config import DB_URL
+from utils.config import DATABASE_URL
 
 def get_conn():
-    """
-    יוצר ומחזיר חיבור חדש למסד הנתונים.
-
-    חשוב:
-    - כל שימוש ב-DB צריך לסגור את החיבור בסוף.
-    """
-    return psycopg2.connect(DB_URL)
+    return psycopg2.connect(DATABASE_URL)

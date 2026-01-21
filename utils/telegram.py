@@ -1,16 +1,18 @@
 """
-utils/telegram.py
-==================
-שכבת תקשורת עם Telegram API.
-
-מטרתו:
-- לספק פונקציות נוחות לשליחת הודעות ותמונות.
-- להסתיר את פרטי ה-HTTP מהקוד הלוגי (handlers).
+telegram.py
+===========
+HE: עטיפה פשוטה ל-Telegram Bot API (שליחת הודעות וקבצים).
+EN: Simple wrapper around Telegram Bot API (sending messages and documents).
 """
+
 import requests
 from utils.config import TELEGRAM_API_URL
 
 def send_message(chat_id, text, reply_markup=None, parse_mode=None):
+    """
+    HE: שולח הודעת טקסט למשתמש.
+    EN: Sends a text message to the user.
+    """
     url = f"{TELEGRAM_API_URL}/sendMessage"
     payload = {
         "chat_id": chat_id,
@@ -23,6 +25,10 @@ def send_message(chat_id, text, reply_markup=None, parse_mode=None):
     requests.post(url, json=payload)
 
 def send_document(chat_id, file_url, caption=None):
+    """
+    HE: שולח מסמך (לינק לקובץ) למשתמש.
+    EN: Sends a document (file URL) to the user.
+    """
     url = f"{TELEGRAM_API_URL}/sendDocument"
     payload = {
         "chat_id": chat_id,

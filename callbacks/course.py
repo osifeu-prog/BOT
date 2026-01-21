@@ -1,4 +1,4 @@
-"""
+﻿"""
 course.py
 =========
 HE: לוגיקת הצגת הקורס בעמודים, כולל מצב דמו.
@@ -18,24 +18,30 @@ from utils.edu_log import edu_step, edu_path
 # EN: Mapping lesson keys to Markdown files (by language)
 LESSON_FILES = {
     "he": {
-        "TELEGRAM_UI": "course/he/TELEGRAM_UI.md",
-        "HOW_IT_WORKS": "course/he/HOW_IT_WORKS.md",
         "INSTALL": "course/he/INSTALL.md",
+        "HOW_IT_WORKS": "course/he/HOW_IT_WORKS.md",
+        "TELEGRAM_UI": "course/he/TELEGRAM_UI.md",
         "ARCH": "course/he/ARCHITECTURE.md",
         "CUSTOMIZE": "course/he/CUSTOMIZE.md",
         "SLOTS_CODE": "course/he/SLOTS_CODE.md",
         "TEMPLATE": "course/he/TEMPLATE.md",
         "FULL_CODE": "course/he/FULL_CODE_EXPLAINED.md",
+        "MARKETING_BOT": "course/he/MARKETING_BOT.md",
+        "RESELLING_KIT": "course/he/RESELLING_KIT.md",
+        "INIT_DB": "course/he/INIT_DB.md",
     },
     "en": {
-        "TELEGRAM_UI": "course/en/TELEGRAM_UI.md",
-        "HOW_IT_WORKS": "course/en/HOW_IT_WORKS.md",
         "INSTALL": "course/en/INSTALL.md",
+        "HOW_IT_WORKS": "course/en/HOW_IT_WORKS.md",
+        "TELEGRAM_UI": "course/en/TELEGRAM_UI.md",
         "ARCH": "course/en/ARCHITECTURE.md",
         "CUSTOMIZE": "course/en/CUSTOMIZE.md",
         "SLOTS_CODE": "course/en/SLOTS_CODE.md",
         "TEMPLATE": "course/en/TEMPLATE.md",
         "FULL_CODE": "course/en/FULL_CODE_EXPLAINED.md",
+        "MARKETING_BOT": "course/en/MARKETING_BOT.md",
+        "RESELLING_KIT": "course/en/RESELLING_KIT.md",
+        "INIT_DB": "course/en/INIT_DB.md",
     },
 }
 

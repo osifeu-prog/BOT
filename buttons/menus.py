@@ -1,4 +1,4 @@
-from utils.i18n import LanguageCode, t
+﻿from utils.i18n import LanguageCode, t
 
 
 def get_main_menu(lang: LanguageCode):
@@ -57,6 +57,9 @@ def get_course_menu(lang: LanguageCode):
 
         [{"text": t(lang, "🎰 קוד משחק SLOTS", "🎰 SLOTS Code"),
           "callback_data": "course|SLOTS_CODE|0"}],
+
+        [{"text": t(lang, "🗄 INIT_DB והכנת מסד הנתונים", "🗄 INIT_DB & DB setup"),
+          "callback_data": "course|INIT_DB|0"}],
 
         [{"text": t(lang, "🤖 תבנית לבוט חדש", "🤖 Bot Template"),
           "callback_data": "course|TEMPLATE|0"}],

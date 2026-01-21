@@ -1,3 +1,12 @@
+"""
+texts/messages.py
+==================
+מכיל טקסטים כלליים של הבוט.
+
+כאן:
+- טקסט פתיחה שיווקי, מותאם לשפה (עברית / אנגלית).
+"""
+
 def get_welcome_text(lang: str, name: str) -> str:
     if lang.startswith("he"):
         return f"""

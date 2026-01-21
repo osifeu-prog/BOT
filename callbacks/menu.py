@@ -1,3 +1,17 @@
+"""
+callbacks/menu.py
+==================
+מטפל בכל כפתורי התפריט (Inline Keyboard).
+
+data (callback_data) יכול להיות:
+- menu_buy
+- menu_how
+- menu_ui
+- menu_slots
+- menu_leaders
+- menu_help
+"""
+
 from utils.telegram import send_message
 from texts.payment import get_payment_message
 from texts.how_it_works import HOW_IT_WORKS

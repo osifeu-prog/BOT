@@ -6,7 +6,6 @@ async def handle_callback(callback):
     user_id = callback["message"]["chat"]["id"]
     data = callback["data"]
 
-    # רק מנהלים יכולים ללחוץ על כפתורים
     if not is_admin(user_id) and user_id != ADMIN_ID:
         return
 

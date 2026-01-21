@@ -1,3 +1,13 @@
+"""
+handlers/echo.py
+=================
+הנדלר הפשוט ביותר — מחזיר למשתמש את מה שכתב.
+
+מטרתו:
+- להדגים איך עובד handler בסיסי
+- לשמש fallback לכל הודעה שלא זוהתה
+"""
+
 from utils.telegram import send_message
 from db.events import log_event
 

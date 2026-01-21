@@ -2,4 +2,5 @@ fastapi
 uvicorn
 httpx
 psycopg2-binary
-redis==5.0.1
+redis
+python-dotenv

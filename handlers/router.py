@@ -1,8 +1,20 @@
-# handlers/router.py
-
 """
-Router להודעות טקסט.
-פתוח לכולם — מנהלים יקבלו יכולות נוספות בהמשך, אבל אף אחד לא נחסם.
+handlers/router.py
+===================
+זה ה-"Router" הראשי של הודעות טקסט.
+
+מטרתו:
+- לקבל כל message מטלגרם
+- להחליט מה לעשות איתו:
+  - /admin → admin_handler
+  - "אושר" → send_zip
+  - /slots → play_slots
+  - /leaders → show_leaderboard
+  - /start → start_handler
+  - כל דבר אחר → echo_handler
+
+שימו לב:
+- הבוט פתוח לכולם (לא חוסם משתמשים רגילים).
 """
 
 from handlers.start import start_handler

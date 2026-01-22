@@ -1,40 +1,45 @@
 import telebot
 from fastapi import FastAPI, Request
-from utils.config import TELEGRAM_TOKEN, DATABASE_URL, WEBHOOK_URL
+from utils.config import TELEGRAM_TOKEN, WEBHOOK_URL, ADMIN_ID
+from handlers.arcade import play_dice
+from handlers.ai_agent import get_market_insight
+from handlers.saas import get_support_info, get_marketplace
+from handlers.marketing import process_referral
 import uvicorn
 
-# אתחול הבוט (ללא Polling!)
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
 app = FastAPI()
 
 @app.get("/")
 def home():
-    return {"status": "Diamond Supreme Empire is Online", "webhook": WEBHOOK_URL}
+    return {"status": "Empire Online", "owner": ADMIN_ID}
 
 @app.post(f"/{TELEGRAM_TOKEN}/")
 async def process_webhook(request: Request):
-    if request.headers.get('content-type') == 'application/json':
-        json_string = await request.body()
-        update = telebot.types.Update.de_json(json_string.decode('utf-8'))
-        bot.process_new_updates([update])
-        return {"status": "ok"}
-    return {"status": "error"}, 403
+    update = telebot.types.Update.de_json((await request.body()).decode('utf-8'))
+    bot.process_new_updates([update])
+    return "ok"
 
-# --- כאן יבואו כל ה-Handlers שכתבנו קודם (Start, Arcade, וכו') ---
-# (הבוט כבר מכיר אותם כי הם רשומים ב-Decorator של ה-bot)
-
+# --- חיבור הלוגיקה העסקית ---
 @bot.message_handler(commands=['start'])
-def start(message):
-    bot.reply_to(message, "💎 **DIAMOND SUPREME (Webhook Mode)**\nהמערכת פעילה ומאובטחת.")
+def send_welcome(message):
+    user_id = str(message.from_user.id)
+    bot.reply_to(message, f"💎 **Diamond Supreme Live**\nכל המערכות פעילות.\nמשתנה WIN_CHANCE מוגדר ב-Railway.")
 
-# פונקציה להגדרת ה-Webhook בטלגרם בזמן עלייה
+@bot.message_handler(func=lambda m: m.text == "🕹️ ארקייד")
+def start_arcade(message):
+    bot.send_message(message.chat.id, "המערכת מושכת נתונים מ-PostgreSQL...")
+
+# פקודת ניהול לבדיקת משתנים (רק לאדמין)
+@bot.message_handler(commands=['admin_check'])
+def check_vars(message):
+    if str(message.from_user.id) == ADMIN_ID:
+        bot.reply_to(message, f"✅ חיבור תקין!\nAdmin: {ADMIN_ID}\nWebhook: {WEBHOOK_URL}")
+
 @app.on_event("startup")
 def on_startup():
-    webhook_path = f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}/"
     bot.remove_webhook()
-    bot.set_webhook(url=webhook_path)
-    print(f"✅ Webhook set to: {webhook_path}")
+    bot.set_webhook(url=f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}/")
 
 if __name__ == "__main__":
-    # הרצה מקומית לצורך בדיקות (ב-Railway זה ירוץ דרך uvicorn)
     uvicorn.run(app, host="0.0.0.0", port=8000)

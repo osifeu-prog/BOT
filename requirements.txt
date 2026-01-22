@@ -5,3 +5,4 @@ requests
 alembic
 sqlalchemy
 redis
+uvicorn

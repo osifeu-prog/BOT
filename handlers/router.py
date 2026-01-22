@@ -1,70 +1,47 @@
 ﻿import requests, time
 from utils.config import TELEGRAM_API_URL, ADMIN_ID, OPENAI_KEY, BOT_USERNAME
-from buttons.menus import get_main_menu, get_reply_keyboard
+from buttons.menus import get_main_menu
 from db.users import update_user_economy, get_user_stats, transfer_slh
 
 user_modes = {}
-user_cooldowns = {}
 
 async def handle_message(message):
     user_id = str(message["from"]["id"])
     text = message.get("text", "")
-    now = time.time()
 
-    if user_id in user_cooldowns and now - user_cooldowns[user_id] < 0.5: return
-    user_cooldowns[user_id] = now
-
-    # --- הפעלת בוט עם לינק זכיינות ---
-    if text.startswith("/start game_sniper_"):
-        referrer_id = text.split("_")[-1]
-        if referrer_id != user_id:
-            update_user_economy(referrer_id, slh_add=50) # הבונוס לזכיין
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": referrer_id, "text": "💰 **מכירה מוצלחת!** מישהו נכנס דרך הלינק שלך. הרווחת 50 SLH."})
-        
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-            "chat_id": user_id, "text": "🔫 **הגעת דרך משחק הצלף!**\nברוך הבא ל-Arcade.",
-            "reply_markup": {"inline_keyboard": get_main_menu('he', user_id)}
-        })
+    # --- פקודת כרייה סודית לאדמין בלבד ---
+    if text == "/mine":
+        if user_id == str(ADMIN_ID):
+            update_user_economy(user_id, slh_add=1000000, xp_add=5000)
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "💎 **ADMIN MINING COMPLETE**\nנוספו 1,000,000 SLH ו-5,000 XP לארנק המאסטר שלך."})
+        else:
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "❌ גישה נדחתה. אתה לא המנהל."})
         return
 
-    # פקודת תשלום (העברה בין חברים)
+    # --- מניעת זיופים בהעברות ---
     if text.startswith("/pay"):
         try:
-            _, target, amount = text.split()
-            if transfer_slh(user_id, target, int(amount)):
-                requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": f"✅ העברת {amount} SLH ל-{target}."})
-                requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": target, "text": f"💰 קיבלת {amount} SLH מ-{user_id}!"})
+            parts = text.split()
+            target_id, amount = parts[1], int(parts[2])
+            if amount <= 0: raise ValueError("Amount must be positive")
+            
+            # בדיקה שהשולח לא שולח לעצמו (מניעת לופ XP)
+            if user_id == target_id:
+                requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "🚫 אי אפשר להעביר לעצמך!"})
+                return
+
+            if transfer_slh(user_id, target_id, amount):
+                requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": f"✅ העברת {amount} SLH בהצלחה."})
+                requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": target_id, "text": f"💰 קיבלת {amount} SLH מיוזר {user_id}!"})
             else:
-                requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "❌ יתרה לא מספקת או משתמש לא קיים."})
+                requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "❌ יתרה נמוכה מדי."})
         except:
-             requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "⚠️ פורמט שגוי. נסה: /pay ID AMOUNT"})
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "⚠️ פורמט: /pay ID AMOUNT"})
         return
 
-    # --- פקודות רגילות ---
+    # חזרה לתפריט ראשי
     if text == "/start" or text == "🔙 חזרה לתפריט":
-        user_modes[user_id] = None
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-            "chat_id": user_id, 
-            "text": "💎 **Diamond VIP Arcade**\nברוך הבא למערכת.",
+            "chat_id": user_id, "text": "💎 **Diamond VIP**\nמערכת מאובטחת ומשופרת.",
             "reply_markup": {"inline_keyboard": get_main_menu('he', user_id)}
         })
-        return
-
-    # --- לוגיקת AI ---
-    if "AI" in text or text == "🤖 שאל את ה-AI":
-        user_modes[user_id] = "ai"
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "🤖 אנליסט מחובר. שאל חופשי."})
-        return
-
-    if user_modes.get(user_id) == "ai" and not text.startswith("/"):
-        requests.post(f"{TELEGRAM_API_URL}/sendChatAction", json={"chat_id": user_id, "action": "typing"})
-        payload = {"model": "gpt-4o-mini", "messages": [{"role": "system", "content": "אתה מומחה פיננסי."}, {"role": "user", "content": text}]}
-        try:
-            r = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers={"Authorization": f"Bearer {OPENAI_KEY}"}).json()
-            reply = r.get('choices', [{}])[0].get('message', {}).get('content', "Error")
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": reply})
-        except: pass
-        return
-
-    if text == "/admin" and user_id == str(ADMIN_ID):
-         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "🕶 **Welcome Master.**"})

@@ -3,63 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Diamond VIP Arcade</title>
+    <title>Diamond VIP</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        :root { --main-blue: #00d2ff; --bg: #05050a; }
-        body { background: var(--bg); color: white; font-family: system-ui, -apple-system; margin: 0; padding: 20px; text-align: center; }
-        .card { background: rgba(255,255,255,0.03); border: 1px solid var(--main-blue); border-radius: 20px; padding: 20px; margin-bottom: 20px; backdrop-filter: blur(10px); }
-        .balance { font-size: 32px; font-weight: bold; color: var(--main-blue); text-shadow: 0 0 10px var(--main-blue); }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .game { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 20px; border: 1px solid rgba(0,210,255,0.2); cursor: pointer; }
-        .game:active { transform: scale(0.95); background: rgba(0,210,255,0.1); }
-        .btn-contact { width: 100%; background: linear-gradient(45deg, #00d2ff, #3a7bd5); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; margin-top: 20px; font-size: 16px; }
+        body { background: #0a0a0c; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; }
+        .gold-text { background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728); -webkit-background-clip: text; color: transparent; font-weight: bold; }
+        .header { padding: 30px 20px; background: radial-gradient(circle at top, #1a1a2e 0%, #0a0a0c 100%); border-bottom: 1px solid #333; }
+        .balance-card { background: rgba(255,255,255,0.05); border: 1px solid #bf953f; border-radius: 25px; padding: 25px; margin: -40px 20px 20px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
+        .game-card { background: #16161a; border-radius: 20px; padding: 25px; border: 1px solid #222; transition: 0.3s; position: relative; overflow: hidden; }
+        .game-card:active { transform: scale(0.95); border-color: #bf953f; }
+        .game-card i { font-size: 40px; margin-bottom: 15px; display: block; }
+        .btn-premium { background: linear-gradient(45deg, #bf953f, #b38728); border: none; padding: 18px; width: calc(100% - 40px); margin: 20px; border-radius: 15px; color: #000; font-weight: 900; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+        #particles-js { position: absolute; width: 100%; height: 100%; z-index: -1; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div style="font-size: 14px; opacity: 0.6;">יתרת יהלומים (SLH)</div>
-        <div class="balance" id="bal">טוען...</div>
+    <div class="header">
+        <h1 class="animate__animated animate__fadeInDown">DIAMOND <span class="gold-text">VIP</span></h1>
+        <p style="opacity: 0.5">Welcome, Premium Member</p>
+    </div>
+    
+    <div class="balance-card animate__animated animate__zoomIn">
+        <div style="font-size: 14px; opacity: 0.7; letter-spacing: 2px;">AVAILABLE SLH BALANCE</div>
+        <div style="font-size: 42px; font-weight: 900;" class="gold-text" id="bal">---</div>
     </div>
 
     <div class="grid">
-        <div class="game" onclick="play('🎰 סלוט')"><div>🎰</div><div>סלוט יהלום</div></div>
-        <div class="game" onclick="play('🔮 גלגל המזל')"><div>🔮</div><div>גלגל המזל</div></div>
-        <div class="game" onclick="Swal.fire('בקרוב', 'המשחק בפיתוח', 'info')"><div>🚀</div><div style="opacity: 0.5;">קראש</div></div>
-        <div class="game" onclick="Swal.fire('בקרוב', 'המשחק בפיתוח', 'info')"><div>🃏</div><div style="opacity: 0.5;">פוקר AI</div></div>
+        <div class="game-card animate__animated animate__fadeInLeft" onclick="playGame('Slots')">
+            <i>🎰</i> <div style="font-weight: bold;">SLOTS</div> <div style="font-size: 12px; color: #bf953f;">Win 1,000+</div>
+        </div>
+        <div class="game-card animate__animated animate__fadeInRight" onclick="playGame('Wheel')">
+            <i>🔮</i> <div style="font-weight: bold;">WHEEL</div> <div style="font-size: 12px; color: #bf953f;">Daily Spin</div>
+        </div>
     </div>
 
-    <button class="btn-contact" id="contact-btn">💬 צור קשר לרכישת הבוט</button>
+    <button class="btn-premium animate__animated animate__fadeInUp" onclick="contactAdmin()">Contact Developer</button>
 
     <script>
         let tg = window.Telegram.WebApp;
-        let userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "test";
-        let adminUser = "osifeuprog"; // ברירת מחדל
+        tg.expand();
+        tg.headerColor = '#0a0a0c';
 
-        async function loadData() {
-            const res = await fetch('/api/user/' + userId);
+        async function updateBalance() {
+            const res = await fetch('/api/user/' + tg.initDataUnsafe.user.id);
             const data = await res.json();
             document.getElementById('bal').innerText = data.slh.toLocaleString();
         }
 
-        async function play(name) {
-            tg.HapticFeedback.impactOccurred('heavy');
-            const { value: bet } = await Swal.fire({ title: name, input: 'number', inputLabel: 'כמה להמר?', inputValue: 10 });
-            if (bet) {
-                const res = await fetch(/api/play?user_id=&bet=, {method: 'POST'});
-                const result = await res.json();
-                Swal.fire(result.win ? 'זכית!' : 'הפסדת', 'היתרה החדשה: ' + result.new_balance, result.win ? 'success' : 'error');
-                loadData();
-            }
+        async function playGame(type) {
+            tg.HapticFeedback.notificationOccurred('success');
+            Swal.fire({
+                title: 'בצע הימור',
+                background: '#16161a', color: '#fff',
+                input: 'range', inputAttributes: { min: 10, max: 100, step: 10 },
+                inputValue: 50, confirmButtonColor: '#bf953f'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const res = await fetch(/api/play?user_id=&bet=, {method: 'POST'});
+                    const data = await res.json();
+                    Swal.fire({
+                        title: data.win ? '🏆 YOU WON!' : '📉 TRY AGAIN',
+                        text: Reward:  SLH,
+                        icon: data.win ? 'success' : 'error',
+                        background: '#16161a', color: '#fff'
+                    });
+                    updateBalance();
+                }
+            });
         }
 
-        document.getElementById('contact-btn').onclick = () => {
-            tg.openTelegramLink('https://t.me/' + adminUser);
-        };
+        function contactAdmin() {
+            tg.openTelegramLink('https://t.me/osifeu_prog');
+        }
 
-        loadData();
-        tg.expand();
+        updateBalance();
     </script>
 </body>
 </html>

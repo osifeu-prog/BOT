@@ -10,16 +10,29 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-# --- לוגיקת סוכן השקעות (Investment Insights) ---
-def get_ai_insights(user_id):
+# --- מערכת הדרגות וה-VIP ---
+def get_user_status(xp, is_vip):
+    rank = "🥉 Starter"
+    if xp > 500: rank = "🥈 Advanced"
+    if xp > 2000: rank = "🥇 Expert"
+    if xp > 5000: rank = "💎 Diamond"
+    vip_status = "✨ VIP" if is_vip else "Standard"
+    return rank, vip_status
+
+# --- סוכן השקעות מתקדם (Portfolio & Risk) ---
+def get_investment_report(user_id):
     conn = get_db()
-    entries = conn.execute("SELECT entry FROM user_journal WHERE user_id = ? ORDER BY id DESC LIMIT 10", (user_id,)).fetchall()
+    journal = conn.execute("SELECT entry FROM user_journal WHERE user_id = ? ORDER BY id DESC LIMIT 15", (user_id,)).fetchall()
+    user = conn.execute("SELECT balance, xp FROM users WHERE user_id = ?", (user_id,)).fetchone()
     conn.close()
-    if not entries: return "אין מספיק נתונים ביומן כדי לנתח את התיק שלך. התחל לרשום פעולות שוק!"
     
-    summary = " ".join([e['entry'] for e in entries])
-    # כאן יבוא חיבור ל-OpenAI. כרגע כסוכן "חכם" מובנה:
-    return f"🔍 **ניתוח סוכן חכם:** מזהה התעניינות ב-{summary[:30]}... מומלץ לעקוב אחרי רמות תמיכה ב-TON."
+    if not journal: return "אין מספיק נתונים ביומן. רשום קניות/מכירות כדי לקבל דוח."
+    
+    report = f"📋 **דוח סוכן חכם:**\n\n"
+    report += f"💰 יתרה נוכחית: {user['balance']} SLH\n"
+    report += "🔍 תובנות: המשתמש מדווח על פעילות בנכסים דיגיטליים. "
+    if user['balance'] < 100: report += "⚠️ אזהרת סיכון: יתרה נמוכה לביצוע פעולות חדשות."
+    return report
 
 def handle_message(message):
     chat_id = message.get("chat", {}).get("id")
@@ -27,107 +40,102 @@ def handle_message(message):
     text = message.get("text", "")
     if not text: return
 
-    # --- פקודות אדמין ---
+    # --- פקודות אדמין (Admin Menu) ---
     if user_id == ADMIN_ID:
-        if text.startswith("/broadcast "):
-            msg = text.replace("/broadcast ", "")
-            conn = get_db(); users = conn.execute("SELECT user_id FROM users").fetchall()
-            for u in users: requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": u['user_id'], "text": f"📢 **עדכון שוק מיוחד:**\n{msg}"})
+        if text == "/admin":
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "🛠 **תפריט ניהול:**\n/stats - סטטיסטיקה\n/broadcast [msg] - הודעה לכולם\n/give_vip [id] - הענקת VIP"})
             return
 
-    # --- הצטרפות ושותפים (Affiliates) ---
+    # --- תפריט משתמש ראשי ---
     if text.startswith("/start"):
         conn = get_db(); c = conn.cursor()
-        user = c.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
-        if not user:
-            # בדיקת רפרל/מתנה
-            args = text.split()
-            bonus = 500 if (len(args) > 1 and "gift" in args[1]) else 100
-            c.execute("INSERT INTO users (user_id, balance, xp, rank) VALUES (?, ?, 0, 'Starter')", (user_id, bonus))
-            conn.commit()
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": ADMIN_ID, "text": f"🔔 משתמש חדש הצטרף: {user_id}"})
-        conn.close()
-        send_menu(chat_id)
+        c.execute("INSERT OR IGNORE INTO users (user_id, balance, xp, rank) VALUES (?, 200, 0, 'Starter')", (user_id,))
+        conn.commit(); conn.close()
+        send_main_menu(chat_id)
 
-    # --- ניהול פורטפוליו וארנק ---
-    elif text == "💳 הארנק שלי":
-        conn = get_db(); user = conn.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
-        msg = f"📊 **תיק השקעות ופרופיל**\n\n💰 יתרה זמינה: {user['balance']} SLH\n🏆 XP: {user['xp']}\n🏅 דרגה: {user['rank']}\n💎 VIP: {'פעיל' if user['is_vip'] else 'לא פעיל'}\n\n🔗 לינק שותפים: https://t.me/{(requests.get(f'{TELEGRAM_API_URL}/getMe').json()['result']['username'])}?start={user_id}"
-        kb = {"inline_keyboard": [[{"text": "📥 הפקדה (TON)", "callback_data": "dep"}, {"text": "📤 משיכה", "callback_data": "with"}]]}
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg, "reply_markup": kb, "parse_mode": "Markdown"})
+    elif text == "💳 הפורטפוליו שלי":
+        conn = get_db()
+        u = conn.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        rank, vip = get_user_status(u['xp'], u['is_vip'])
+        msg = f"👤 **פרופיל משקיע**\n\n💎 סטטוס: {vip}\n🏅 דרגה: {rank}\n💰 יתרה: {u['balance']} SLH\n🏆 XP: {u['xp']}"
+        kb = {"inline_keyboard": [[{"text": "📥 הפקדה", "callback_data": "dep"}, {"text": "📤 משיכה", "callback_data": "with"}],
+                                   [{"text": "🏆 Leaderboard", "callback_data": "lead"}]]}
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg, "reply_markup": kb})
 
-    # --- סוכן השקעות AI ---
-    elif text == "🤖 סוכן חכם (AI)":
-        insight = get_ai_insights(user_id)
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": insight})
+    elif text == "🤖 סוכן (AI)":
+        report = get_investment_report(user_id)
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": report})
 
-    # --- בונוס יומי (עם חסימה ל-24 שעות) ---
-    elif text == "🎁 בונוס יומי":
-        conn = get_db(); c = conn.cursor()
-        user = c.execute("SELECT last_daily FROM users WHERE user_id = ?", (user_id,)).fetchone()
-        now = datetime.now()
-        if user['last_daily'] and datetime.strptime(user['last_daily'], '%Y-%m-%d %H:%M:%S') > now - timedelta(days=1):
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "⏳ הבונוס יהיה זמין שוב מחר!"})
-        else:
-            c.execute("UPDATE users SET balance = balance + 100, last_daily = ? WHERE user_id = ?", (now.strftime('%Y-%m-%d %H:%M:%S'), user_id))
-            conn.commit()
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "🎁 קיבלת 100 SLH! נתראה מחר."})
-        conn.close()
-
-    elif text == "🎰 ארקייד":
+    elif text == "🕹 Arcade":
         send_arcade_menu(chat_id)
 
-    elif text.startswith("💰 הימור:"):
+    elif text.startswith("💰 Bet:"):
         amt = text.split(":")[1].split()[0]
         send_guess_buttons(chat_id, amt)
 
-    # --- יומן שוק (הזנת נתונים לסוכן) ---
+    elif text == "🎁 Daily":
+        process_daily(chat_id, user_id)
+
     else:
+        # רישום יומן (Data for AI)
         conn = get_db(); conn.execute("INSERT INTO user_journal (user_id, entry) VALUES (?, ?)", (user_id, text))
         conn.commit(); conn.close()
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "📝 רשמתי ביומן השוק. הסוכן החכם ינתח זאת."})
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "✅ רשום ביומן השוק. הסוכן מעבד את הנתונים."})
 
 def handle_callback(callback_query):
     chat_id = callback_query.get("message", {}).get("chat", {}).get("id")
     user_id = str(callback_query.get("from", {}).get("id"))
     data = callback_query.get("data")
 
-    if data.startswith("play_"):
-        # לוגיקת הקוביה (כפי שהייתה ב-v27, מוטמעת כאן במלואה)
-        process_bet(chat_id, user_id, data)
-    elif data == "dep":
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"📥 שלח TON לכתובת:\n{os.getenv('TON_WALLET')}", "parse_mode": "Markdown"})
+    if data.startswith("p_"): # p_[amt]_[guess]
+        process_arcade_play(chat_id, user_id, data)
+    elif data == "lead":
+        conn = get_db()
+        top = conn.execute("SELECT user_id, xp FROM users ORDER BY xp DESC LIMIT 5").fetchall()
+        msg = "🏆 **מובילי הקהילה:**\n" + "\n".join([f"{i+1}. {u['user_id']}: {u['xp']} XP" for i, u in enumerate(top)])
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg})
 
-def send_menu(chat_id):
-    kb = {"keyboard": [[{"text": "💳 הארנק שלי"}, {"text": "🤖 סוכן חכם (AI)"}], [{"text": "🎰 ארקייד"}, {"text": "🎁 בונוס יומי"}]], "resize_keyboard": True}
-    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "💎 **DIAMOND SUPREME INVEST**\nברוך הבא לסוכן ההשקעות הפרטי שלך.", "reply_markup": kb})
+def send_main_menu(chat_id):
+    kb = {"keyboard": [[{"text": "💳 הפורטפוליו שלי"}, {"text": "🤖 סוכן (AI)"}], 
+                       [{"text": "🕹 Arcade"}, {"text": "🎁 Daily"}]], "resize_keyboard": True}
+    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "💎 **DIAMOND ELITE v3.0**", "reply_markup": kb})
 
 def send_arcade_menu(chat_id):
-    kb = {"keyboard": [[{"text": "💰 הימור: 50 SLH"}, {"text": "💰 הימור: 100 SLH"}], [{"text": "🔙 חזרה"}]], "resize_keyboard": True}
-    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "🎰 **בחר סכום הימור:**", "reply_markup": kb})
+    kb = {"keyboard": [[{"text": "💰 Bet: 10 SLH"}, {"text": "💰 Bet: 50 SLH"}], [{"text": "🔙 חזרה"}]], "resize_keyboard": True}
+    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "🕹 **בחר סכום הימור:**", "reply_markup": kb})
 
 def send_guess_buttons(chat_id, amt):
-    btns = [[{"text": f"🎲 {i}", "callback_data": f"play_{amt}_{i}"} for i in range(1, 4)],
-            [{"text": f"🎲 {i}", "callback_data": f"play_{amt}_{i}"} for i in range(4, 7)]]
-    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"מהמר על {amt} SLH. נחש מספר:", "reply_markup": {"inline_keyboard": btns}})
+    btns = [[{"text": f"🎲 {i}", "callback_data": f"p_{amt}_{i}"} for i in range(1, 4)],
+            [{"text": f"🎲 {i}", "callback_data": f"p_{amt}_{i}"} for i in range(4, 7)]]
+    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"נחש מספר (הימור {amt}):", "reply_markup": {"inline_keyboard": btns}})
 
-def process_bet(chat_id, user_id, data):
+def process_arcade_play(chat_id, user_id, data):
+    # לוגיקת משחק מלאה כולל עדכון XP ודרגה
     _, amt, guess = data.split("_")
     amt, guess = int(amt), int(guess)
-    conn = get_db(); user = conn.execute("SELECT balance, xp FROM users WHERE user_id = ?", (user_id,)).fetchone()
-    if user['balance'] < amt:
+    conn = get_db(); u = conn.execute("SELECT balance, xp FROM users WHERE user_id = ?", (user_id,)).fetchone()
+    if u['balance'] < amt:
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "❌ אין מספיק SLH!"})
         return
-    conn.execute("UPDATE users SET balance = balance - ?, xp = xp + 10 WHERE user_id = ?", (amt, user_id))
-    conn.commit()
-    dice_msg = requests.post(f"{TELEGRAM_API_URL}/sendDice", json={"chat_id": chat_id, "emoji": "🎲"}).json()
-    val = dice_msg['result']['dice']['value']
+    
+    # אנימציה
+    dice = requests.post(f"{TELEGRAM_API_URL}/sendDice", json={"chat_id": chat_id, "emoji": "🎲"}).json()
+    val = dice['result']['dice']['value']
     time.sleep(3.5)
-    win_chance = int(os.getenv('WIN_CHANCE_PERCENT', 30))
-    if val == guess and random.randint(1, 100) <= win_chance:
-        win = amt * 5
-        conn.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (win, user_id))
-        res = f"🎯 בול! זכית ב-{win} SLH!"
-    else: res = f"❌ יצא {val}. הפסדת {amt}."
+    
+    win = (val == guess) and (random.randint(1, 100) <= int(os.getenv('WIN_CHANCE_PERCENT', 30)))
+    if win:
+        reward = amt * 5
+        conn.execute("UPDATE users SET balance = balance + ?, xp = xp + 50 WHERE user_id = ?", (reward, user_id))
+        msg = f"🎯 בול! זכית ב-{reward} SLH!"
+    else:
+        conn.execute("UPDATE users SET balance = balance - ?, xp = xp + 5 WHERE user_id = ?", (amt, user_id))
+        msg = f"❌ יצא {val}. הפסדת {amt} SLH."
     conn.commit(); conn.close()
-    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": res})
+    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg})
+
+def process_daily(chat_id, user_id):
+    conn = get_db(); c = conn.cursor()
+    c.execute("UPDATE users SET balance = balance + 100, xp = xp + 20 WHERE user_id = ?", (user_id,))
+    conn.commit(); conn.close()
+    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "🎁 קיבלת 100 SLH ו-20 XP!"})

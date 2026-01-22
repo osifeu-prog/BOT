@@ -1,1 +1,1 @@
-﻿{ "deploy": { "numReplicas": 1 } }
+{ "deploy": { "numReplicas": 1 } }

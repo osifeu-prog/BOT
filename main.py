@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import HTMLResponse
 import requests, time, random, uvicorn, os
 from utils.config import TELEGRAM_API_URL, PORT, ADMIN_ID
@@ -12,7 +12,6 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup_event():
     initialize_db()
-    # חיבור מחדש של הבוט לשרת - זה משחרר את ה"חסימה"
     webhook_url = "https://bot-production-2668.up.railway.app/webhook"
     requests.get(f"{TELEGRAM_API_URL}/setWebhook?url={webhook_url}&drop_pending_updates=True")
 
@@ -23,20 +22,17 @@ async def get_user_api(user_id: str):
 
 @app.post("/api/play")
 async def play_game(user_id: str, bet: int):
-    # מנוע משחק משופר
-    win = random.random() < 0.3 # 30% סיכוי זכייה כברירת מחדל
+    win = random.random() < 0.3
     reward = bet * 2 if win else -bet
     update_user_balance(user_id, reward)
-    stats = get_user_stats(user_id)
-    return {"win": win, "reward": reward, "new_balance": stats[1]}
+    return {"win": win, "reward": reward, "new_balance": get_user_stats(user_id)[1]}
 
 @app.post("/api/daily-spin")
 async def daily_spin(user_id: str):
-    prizes = [0, 10, 20, 50, 0, 100, 0, 5]
+    prizes = [10, 50, 0, 100, 20, 0]
     win_amount = random.choice(prizes)
     update_user_balance(user_id, win_amount)
-    stats = get_user_stats(user_id)
-    return {"win": win_amount > 0, "amount": win_amount, "new_balance": stats[1]}
+    return {"win": win_amount > 0, "amount": win_amount}
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
@@ -46,10 +42,8 @@ async def serve_index():
 @app.post("/webhook")
 async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
     data = await request.json()
-    if "message" in data: 
-        background_tasks.add_task(handle_message, data["message"])
-    elif "callback_query" in data: 
-        background_tasks.add_task(handle_callback, data["callback_query"])
+    if "message" in data: background_tasks.add_task(handle_message, data["message"])
+    elif "callback_query" in data: background_tasks.add_task(handle_callback, data["callback_query"])
     return {"ok": True}
 
 if __name__ == "__main__":

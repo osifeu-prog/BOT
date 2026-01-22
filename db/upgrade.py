@@ -5,24 +5,28 @@ def upgrade_tables():
     conn = get_conn()
     cur = conn.cursor()
     try:
-        # יצירת עמודות אחת אחת כדי למנוע קריסה אם חלקן קיימות
-        columns = [
-            ("xp", "INTEGER DEFAULT 0"),
-            ("slh_coins", "INTEGER DEFAULT 100"),
-            ("balance", "INTEGER DEFAULT 0"),
-            ("referral_count", "INTEGER DEFAULT 0"),
-            ("last_daily", "TIMESTAMP")
-        ]
-        for col_name, col_type in columns:
-            try:
-                cur.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
-                logger.info(f"✅ Added column: {col_name}")
-            except:
-                conn.rollback() # העמודה כנראה כבר קיימת
-        
+        # יצירת הטבלה מחדש עם כל העמודות הנכונות
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id TEXT PRIMARY KEY,
+                username TEXT,
+                lang TEXT DEFAULT 'he',
+                xp INTEGER DEFAULT 0,
+                slh_coins INTEGER DEFAULT 100,
+                balance INTEGER DEFAULT 0,
+                referral_count INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        # ניסיון להוסיף עמודות אם הטבלה כבר הייתה קיימת
+        cols = [("xp", "INTEGER DEFAULT 0"), ("slh_coins", "INTEGER DEFAULT 100"), 
+                ("balance", "INTEGER DEFAULT 0"), ("referral_count", "INTEGER DEFAULT 0")]
+        for col, spec in cols:
+            try: cur.execute(f"ALTER TABLE users ADD COLUMN {col} {spec}")
+            except: conn.rollback()
         conn.commit()
+        logger.info("✅ Database Structure Verified")
     except Exception as e:
-        logger.error(f"❌ DB Upgrade Critical Error: {e}")
+        logger.error(f"❌ DB Fix Error: {e}")
     finally:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()

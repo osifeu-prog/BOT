@@ -1,6 +1,5 @@
-﻿fastapi
+fastapi
 uvicorn
 requests
-python-dotenv
-psycopg2-binary
-python-telegram-bot==13.15
+jinja2
+python-multipart

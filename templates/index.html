@@ -3,42 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite Arcade</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 10px; }
-        .ticker { background: #bf953f; color: #000; padding: 5px; font-weight: bold; font-size: 12px; margin-bottom: 10px; border-radius: 5px; }
-        .card { background: #111; border: 1px solid #333; padding: 15px; border-radius: 15px; margin-bottom: 10px; }
-        .btn { background: linear-gradient(45deg, #bf953f, #fcf6ba); color: #000; padding: 12px; border-radius: 10px; width: 100%; border: none; font-weight: bold; margin-top: 10px; }
+        body { background: #0b0b0e; color: #fff; font-family: -apple-system, system-ui; text-align: center; padding: 20px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: #16161d; border: 1px solid #333; padding: 15px; border-radius: 12px; }
+        .xp-container { background: #222; height: 8px; border-radius: 4px; margin: 15px 0; overflow: hidden; }
+        .xp-bar { background: linear-gradient(90deg, #bf953f, #fcf6ba); height: 100%; width: 30%; transition: width 1s ease; }
+        .btn-action { background: linear-gradient(45deg, #bf953f, #fcf6ba); color: #000; border: none; padding: 18px; width: 100%; border-radius: 15px; font-weight: 900; font-size: 16px; box-shadow: 0 4px 15px rgba(191,149,63,0.3); }
     </style>
 </head>
 <body>
-    <div class="ticker"><marquee>ישראל כהן זכה ב-250 SLH! • דניאל השלים משימת ערוץ • המחיר הנוכחי: 1 SLH = 1$</marquee></div>
-    <div class="card">
-        <h2>היתרה שלך: <span id="bal" style="color:#bf953f">טוען...</span></h2>
+    <div class="stats-grid">
+        <div class="stat-card">💎 <span id="slh">...</span><br><small>SLH</small></div>
+        <div class="stat-card">🏆 <span id="rank">Starter</span><br><small>RANK</small></div>
     </div>
-    <div class="card">
-        <h3>🎯 משימה יומית</h3>
-        <p>הצטרף לערוץ ה-VIP וקבל 100 SLH</p>
-        <button class="btn" onclick="window.open('https://t.me/osifeu_prog')">בצע משימה</button>
-    </div>
-    <div class="card">
-        <h3>🎰 Daily Spin</h3>
-        <button class="btn" onclick="play()">שחק עכשיו</button>
-    </div>
+    <div class="xp-container"><div class="xp-bar" id="xpBar"></div></div>
+    <p id="xpText" style="font-size: 12px; opacity: 0.7;">טוען התקדמות...</p>
+    
+    <button class="btn-action" onclick="claimXP()">איסוף בונוס יומי (+50 XP)</button>
+
     <script>
         let tg = window.Telegram.WebApp;
-        async function load() {
+        async function updateUI() {
             const r = await fetch('/api/user/' + tg.initDataUnsafe.user.id);
             const d = await r.json();
-            document.getElementById('bal').innerText = d.slh;
+            document.getElementById('slh').innerText = d.slh.toLocaleString();
+            // חישוב XP פיקטיבי כרגע להצגה
+            let xp = 30; 
+            document.getElementById('xpBar').style.width = xp + '%';
+            document.getElementById('xpText').innerText = 'עוד ' + (100 - xp) + ' XP לדרגת Gold';
         }
-        async function play() {
-            tg.HapticFeedback.impactOccurred('medium');
-            await fetch('/api/game-action?user_id=' + tg.initDataUnsafe.user.id + '&amount=50', {method: 'POST'});
-            alert('זכית!'); load();
+        function claimXP() {
+            tg.HapticFeedback.notificationOccurred('success');
+            alert('הבונוס נאסף בהצלחה!');
+            updateUI();
         }
-        load(); tg.expand();
+        updateUI(); tg.expand();
     </script>
 </body>
 </html>

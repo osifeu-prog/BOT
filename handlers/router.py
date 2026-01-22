@@ -1,56 +1,65 @@
-﻿import requests
-import time
+﻿import requests, time
 from utils.config import TELEGRAM_API_URL, ADMIN_ID, OPENAI_KEY, BOT_USERNAME
 from buttons.menus import get_main_menu, get_reply_keyboard, get_games_menu
-from db.users import update_user_economy, get_user_stats, transfer_slh, get_leaderboard
+from db.users import update_user_economy, get_user_stats, transfer_slh, get_leaderboard, claim_daily
 
-# מנגנון הגנה נגד הצפות (פשוט)
 user_cooldowns = {}
 
 async def handle_message(message):
     user_id = str(message["from"]["id"])
-    now = time.time()
+    text = message.get("text", "")
     
-    # הגנה: מקסימום הודעה כל 1.5 שניות
-    if user_id in user_cooldowns and now - user_cooldowns[user_id] < 1.5:
-        return
+    # הגנת ספאם
+    now = time.time()
+    if user_id in user_cooldowns and now - user_cooldowns[user_id] < 1: return
     user_cooldowns[user_id] = now
 
-    text = message.get("text", "")
-
-    # טבלת מובילים (Leaderboard)
-    if text == "📊 טבלת מובילים" or text == "/top":
-        top = get_leaderboard()
-        leader_text = "🏆 **חמשת הלווייתנים של Diamond VIP:**\n\n"
-        for i, user in enumerate(top):
-            leader_text += f"{i+1}. משתמש {user[0][:4]}... - 🪙 {user[1]} SLH\n"
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": leader_text, "parse_mode": "Markdown"})
+    if "dice" in message:
+        val, emo = message["dice"]["value"], message["dice"]["emoji"]
+        update_user_economy(user_id, xp_add=10)
+        if (emo == "🏀" and val >= 4) or (emo == "🎳" and val == 6):
+            update_user_economy(user_id, slh_add=70)
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "🔥 ביצוע מטורף! קיבלת 70 SLH!"})
         return
 
-    # Deep Linking: העברה ויראלית בטוחה
     if text.startswith("/start pay_"):
         target_id = text.split("_")[1]
-        if target_id == user_id:
-            msg = "❌ ניסיון יפה, אבל אי אפשר לשלוח כסף לעצמך!"
-        else:
-            if transfer_slh(user_id, target_id, 50):
-                msg = f"✅ **העברה בוצעה!**\nשלחת 50 SLH לכתובת {target_id}."
-                requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": target_id, "text": f"🎁 קיבלת 50 SLH מחבר ({user_id})!"})
-            else:
-                msg = "❌ יתרה נמוכה מדי לביצוע העברה."
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg, "parse_mode": "Markdown"})
+        if transfer_slh(user_id, target_id, 50):
+            msg = f"✅ שלחת 50 SLH לכתובת {target_id}!"
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": target_id, "text": "💰 קיבלת 50 SLH מחבר!"})
+        else: msg = "❌ אין לך מספיק SLH."
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg})
         return
 
-    # שאר התפריטים (START וכו')...
     if text == "/start" or text == "🔙 חזרה":
-        welcome = (f"💎 **ברוך הבא ל-Diamond Arcade VIP** 💎\n\n"
-                  f"כאן הכסף שלך עובד בשבילך (ובשביל הכיף!)\n"
-                  f"🎮 משחקים, 🪙 מרוויחים ו-🤝 משתפים.")
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-            "chat_id": user_id, "text": welcome, "parse_mode": "Markdown",
+            "chat_id": user_id, "text": "💎 **Diamond VIP Arcade** 💎",
             "reply_markup": {"keyboard": get_reply_keyboard()["keyboard"], "resize_keyboard": True}
         })
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-            "chat_id": user_id, "text": "מה נרצה לעשות עכשיו?",
+            "chat_id": user_id, "text": "בחר פעולה:",
             "reply_markup": {"inline_keyboard": get_main_menu('he', user_id)}
         })
+
+    elif text == "💰 הארנק שלי":
+        xp, slh, bal, _ = get_user_stats(user_id)
+        pay_link = f"https://t.me/{BOT_USERNAME}?start=pay_{user_id}"
+        msg = f"💳 **הארנק שלך**\n\n🪙 SLH: {slh}\n✨ XP: {xp}\n💰 יתרה: {bal}\n\n🔗 לינק לתשלום:\n{pay_link}"
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg, "parse_mode": "Markdown"})
+
+    elif text == "📊 טבלת מובילים":
+        top = get_leaderboard()
+        msg = "🏆 **TOP 5 DIAMOND:**\n\n" + "\n".join([f"{i+1}. {u[0][:5]}... - {u[1]} SLH" for i, u in enumerate(top)])
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg})
+
+    elif text == "🎁 בונוס יומי":
+        if claim_daily(user_id): msg = "✅ קיבלת 50 SLH מתנה יומית!"
+        else: msg = "⏳ כבר לקחת היום, חזור מחר!"
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg})
+
+    elif not text.startswith("/") and OPENAI_KEY:
+        # AI Logic... (GPT-4o-mini)
+        requests.post(f"{TELEGRAM_API_URL}/sendChatAction", json={"chat_id": user_id, "action": "typing"})
+        payload = {"model": "gpt-4o-mini", "messages": [{"role": "system", "content": "מנהל VIP כריזמטי."}, {"role": "user", "content": text}]}
+        res = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers={"Authorization": f"Bearer {OPENAI_KEY}"}).json()
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": res['choices'][0]['message']['content']})

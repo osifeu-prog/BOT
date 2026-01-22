@@ -7,85 +7,89 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; text-align: center; }
-        canvas { background: #5c94fc; display: block; margin: 0 auto; border-bottom: 5px solid #885010; }
-        .ui { padding: 15px; background: #222; }
-        .gold { color: #ffcc00; }
-        .btn { background: #ffcc00; color: #000; padding: 10px 20px; border-radius: 5px; font-weight: bold; border: none; margin-top: 10px; }
+        canvas { background: #5c94fc; display: block; margin: 0 auto; border-bottom: 5px solid #885010; width: 100%; height: 250px; }
+        .ui { padding: 15px; background: #222; border-bottom: 2px solid #ffcc00; }
+        .gold { color: #ffcc00; font-weight: bold; }
+        .btn { background: #ffcc00; color: #000; padding: 15px 30px; border-radius: 10px; font-weight: bold; border: none; margin-top: 10px; font-size: 18px; }
     </style>
 </head>
 <body>
     <div class="ui">
-        <div>SCORE: <span id="score">0</span> | SLH: <span id="bal" class="gold">0</span></div>
+        <div>SCORE: <span id="score">0</span> | SLH: <span id="bal" class="gold">טוען...</span></div>
     </div>
     <canvas id="gameCanvas"></canvas>
     <div class="ui">
-        <button class="btn" onclick="startGame()">START GAME</button>
-        <p style="font-size: 10px; opacity: 0.6;">קפוץ מעל המכשולים כדי לצבור SLH!</p>
+        <button class="btn" onclick="startGame()" id="startBtn">START GAME</button>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
+        let userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "12345";
         let canvas = document.getElementById('gameCanvas');
         let ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = 300;
+        
+        async function updateBalance() {
+            try {
+                const r = await fetch('/api/user/' + userId);
+                const d = await r.json();
+                document.getElementById('bal').innerText = d.slh;
+            } catch(e) { document.getElementById('bal').innerText = "ERR"; }
+        }
 
-        let player = { x: 50, y: 250, w: 30, h: 30, dy: 0, jump: -10, ground: 250 };
+        let player = { x: 50, y: 200, w: 30, h: 30, dy: 0, jump: -10, ground: 200 };
         let obstacles = [];
         let score = 0;
         let gameRunning = false;
 
-        function drawPlayer() {
-            ctx.fillStyle = '#ff0000'; // "מריו" אדום
-            ctx.fillRect(player.x, player.y, player.w, player.h);
-        }
-
-        function update() {
+        function render() {
             if (!gameRunning) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            player.dy += 0.5; // כוח משיכה
+            // Player
+            player.dy += 0.6;
             player.y += player.dy;
             if (player.y > player.ground) { player.y = player.ground; player.dy = 0; }
+            ctx.fillStyle = "red";
+            ctx.fillRect(player.x, player.y, player.w, player.h);
 
-            if (Math.random() < 0.02) obstacles.push({ x: canvas.width, y: 260, w: 20, h: 20 });
-
+            // Obstacles
+            if (Math.random() < 0.02) obstacles.push({ x: canvas.width, y: 210, w: 20, h: 20 });
             obstacles.forEach((os, i) => {
-                os.x -= 5;
-                ctx.fillStyle = '#00ff00';
+                os.x -= 6;
+                ctx.fillStyle = "black";
                 ctx.fillRect(os.x, os.y, os.w, os.h);
-
-                // התנגשות
                 if (player.x < os.x + os.w && player.x + player.w > os.x && player.y < os.y + os.h && player.y + player.h > os.y) {
                     gameOver();
                 }
             });
-
+            
             score++;
             document.getElementById('score').innerText = score;
             requestAnimationFrame(render);
         }
 
-        function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawPlayer();
-            update();
-        }
-
         function startGame() {
-            score = 0;
-            obstacles = [];
-            gameRunning = true;
+            if (gameRunning) return;
+            score = 0; obstacles = []; gameRunning = true;
+            document.getElementById('startBtn').style.display = "none";
             render();
         }
 
         async function gameOver() {
             gameRunning = false;
+            document.getElementById('startBtn').style.display = "inline-block";
             tg.HapticFeedback.notificationOccurred('error');
             alert('Game Over! Score: ' + score);
-            await fetch(/api/save-game-score?user_id=&score=, {method: 'POST'});
+            await fetch(/api/save-game-score?user_id=--force{userId}&score=--force{score}, {method: 'POST'});
+            updateBalance();
         }
 
-        window.addEventListener('touchstart', () => { if (player.y == player.ground) player.dy = player.jump; });
+        canvas.addEventListener('touchstart', (e) => { 
+            e.preventDefault();
+            if (player.y == player.ground) player.dy = player.jump; 
+        });
+
+        updateBalance();
         tg.expand();
     </script>
 </body>

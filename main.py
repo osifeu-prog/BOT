@@ -15,14 +15,33 @@ app = FastAPI()
 def get_db():
     return psycopg2.connect(DATABASE_URL)
 
-# פונקציה לתיקון אוטומטי של בסיס הנתונים
 def patch_database():
     try:
         conn = get_db(); cur = conn.cursor()
+        # יצירת טבלת משתמשים
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id TEXT PRIMARY KEY,
+                balance INTEGER DEFAULT 0,
+                xp INTEGER DEFAULT 0,
+                rank TEXT DEFAULT 'Starter',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        # יצירת טבלת יומן עבור ה-AI
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS journal (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT,
+                entry TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        # הוספת עמודות למקרה שהטבלה הייתה קיימת בלי הדרגות
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS rank TEXT DEFAULT 'Starter';")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0;")
         conn.commit(); cur.close(); conn.close()
-        print("✅ Database Schema Verified & Patched")
+        print("✅ Database Schema Fully Verified")
     except Exception as e:
         print(f"❌ DB Patch Error: {e}")
 
@@ -58,7 +77,7 @@ def add_cash(message):
         conn = get_db(); cur = conn.cursor()
         cur.execute("UPDATE users SET balance = balance + %s WHERE user_id = %s", (amount, target_id))
         conn.commit(); cur.close(); conn.close()
-        bot.reply_to(message, f"✅ הופקדו {amount} SLH.")
+        bot.reply_to(message, f"✅ הופקדו {amount} SLH ל-{target_id}.")
     except: bot.reply_to(message, "❌ שימוש: /add_cash [ID] [כמות]")
 
 @bot.message_handler(commands=['start'])
@@ -68,6 +87,12 @@ def start(message):
 @bot.message_handler(func=lambda m: True)
 def handle_text(message):
     text, chat_id, user_id = message.text, message.chat.id, str(message.from_user.id)
+    
+    # רישום כל הודעה ביומן לצורך ניתוח AI בעתיד
+    conn = get_db(); cur = conn.cursor()
+    cur.execute("INSERT INTO journal (user_id, entry) VALUES (%s, %s)", (user_id, text))
+    conn.commit(); cur.close(); conn.close()
+
     if text == "💳 פורטפוליו & ארנק":
         conn = get_db(); cur = conn.cursor()
         cur.execute("SELECT balance, xp, rank FROM users WHERE user_id = %s", (user_id,))
@@ -91,7 +116,7 @@ def callback_play(call):
 
 @app.on_event("startup")
 def on_startup():
-    patch_database() # תיקון בסיס הנתונים ברגע העלייה!
+    patch_database()
     bot.remove_webhook()
     bot.set_webhook(url=f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}/")
 

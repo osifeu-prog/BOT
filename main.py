@@ -1,23 +1,27 @@
 # -*- coding: utf-8 -*-
 import telebot, uvicorn, psycopg2, os, random
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+from telebot.types import BotCommand, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from utils.config import *
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 def get_db(): return psycopg2.connect(DATABASE_URL)
 
-# --- פקודות בוט מלאות ---
+# הגדרת תפריט פקודות רשמי בטלגרם
+def set_commands():
+    commands = [
+        BotCommand("start", "🚀 התחלת הבוט"),
+        BotCommand("profile", "👤 הפרופיל שלי"),
+        BotCommand("ai", "🤖 עוזר AI"),
+        BotCommand("admin", "👑 ניהול (אדמין בלבד)")
+    ]
+    bot.set_my_commands(commands)
 
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.from_user.id)
-    # יצירת משתמש אם לא קיים
     conn = get_db(); cur = conn.cursor()
     cur.execute("INSERT INTO users (user_id, balance) VALUES (%s, 1000) ON CONFLICT DO NOTHING", (uid,))
     conn.commit(); cur.close(); conn.close()
@@ -26,42 +30,41 @@ def start(message):
     hub_url = f"{WEBHOOK_URL.split('/8106')[0]}/hub"
     markup.add(KeyboardButton("💎 SUPREME HUB", web_app=WebAppInfo(url=hub_url)))
     markup.add("📊 פורטפוליו", "👤 פרופיל", "🎁 בונוס יומי", "🤖 AI עוזר")
-    bot.send_message(message.chat.id, f"💎 **ברוך הבא ל-DIAMOND SUPREME**\n\nכאן תוכל לסחור, לשחק ולהרוויח.", reply_markup=markup, parse_mode="HTML")
+    
+    bot.send_message(message.chat.id, "💎 **DIAMOND SUPREME ONLINE**\nהמערכת מחוברת ומוכנה לעבודה.", reply_markup=markup, parse_mode="HTML")
 
-@bot.message_handler(func=lambda m: m.text == "👤 פרופיל" or m.text == "/profile")
-def profile(message):
-    uid = str(message.from_user.id)
+# --- מנגנון שידור (Broadcast) לאדמין ---
+
+@bot.callback_query_handler(func=lambda call: call.data == "broadcast")
+def ask_broadcast_msg(call):
+    msg = bot.send_message(call.message.chat.id, "📝 שלח לי עכשיו את ההודעה שתרצה להפיץ לכל המשתמשים:")
+    bot.register_next_step_handler(msg, send_broadcast)
+
+def send_broadcast(message):
+    if str(message.from_user.id) != ADMIN_ID: return
+    
     conn = get_db(); cur = conn.cursor()
-    cur.execute("SELECT balance FROM users WHERE user_id = %s", (uid,))
-    res = cur.fetchone()
-    balance = res[0] if res else 0
+    cur.execute("SELECT user_id FROM users")
+    users = cur.fetchall()
     cur.close(); conn.close()
-    bot.reply_to(message, f"👤 **הפרופיל שלך:**\n\n🆔 מזהה: {uid}\n💰 יתרה: {balance} SLH", parse_mode="HTML")
+    
+    count = 0
+    for user in users:
+        try:
+            bot.send_message(user[0], f"📢 **הודעת מערכת:**\n\n{message.text}", parse_mode="HTML")
+            count += 1
+        except: pass
+    
+    bot.send_message(ADMIN_ID, f"✅ השידור הסתיים! ההודעה נשלחה ל-{count} משתמשים.")
+
+# --- API ושאר הפונקציות ---
 
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
-    if str(message.from_user.id) == ADMIN_ID:
-        bot.reply_to(message, "👑 **פאנל ניהול אדמין**\n\nהגדרות נוכחיות:\nסיכוי זכייה: " + str(WIN_CHANCE*100) + "%\nפרס הזמנה: " + str(REFERRAL_REWARD))
-    else:
-        bot.reply_to(message, "❌ אין לך הרשאות ניהול.")
-
-@bot.message_handler(commands=['ai'])
-def ai_assistant(message):
-    bot.reply_to(message, "🤖 עוזר ה-AI בודק את השוק עבורך... (מתחבר ל-OpenAI)")
-
-# --- API לממשק ה-WEB (HUB) ---
-
-@app.get("/api/user_data/{uid}")
-async def user_data(uid: str):
-    conn = get_db(); cur = conn.cursor()
-    cur.execute("SELECT balance FROM users WHERE user_id = %s", (uid,))
-    res = cur.fetchone()
-    cur.close(); conn.close()
-    return {"balance": res[0] if res else 1000}
-
-@app.get("/hub", response_class=HTMLResponse)
-async def serve_hub():
-    with open("hub.html", "r", encoding="utf-8") as f: return f.read()
+    if str(message.from_user.id) != ADMIN_ID: return
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("📢 שידור הודעה לכולם", callback_data="broadcast"))
+    bot.send_message(message.chat.id, f"👑 **פאנל ניהול אדמין**\nסיכוי זכייה: {WIN_CHANCE*100}%\nפרס הזמנה: {REFERRAL_REWARD}", reply_markup=markup)
 
 @app.post(f"/{TELEGRAM_TOKEN}/")
 async def web(request: Request):
@@ -73,3 +76,4 @@ async def web(request: Request):
 def setup():
     bot.remove_webhook()
     bot.set_webhook(url=f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}/")
+    set_commands() # מעדכן את התפריט בטלגרם

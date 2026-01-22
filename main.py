@@ -22,38 +22,22 @@ def get_user_role(uid):
         return res[0] if res and res[0] is not None else 0
     except: return 0
 
-# --- פונקציית פרס אוטומטי (כל יום חמישי ב-22:00) ---
-def give_weekly_prize():
+@app.get("/wallet_page", response_class=HTMLResponse)
+async def get_wallet():
     try:
-        conn = get_db(); cur = conn.cursor()
-        cur.execute("SELECT user_id FROM users ORDER BY balance DESC LIMIT 1")
-        winner = cur.fetchone()
-        if winner:
-            winner_id = winner[0]
-            cur.execute("UPDATE users SET balance = balance + 5000 WHERE user_id = %s", (winner_id,))
-            conn.commit()
-            bot.send_message(winner_id, "🏆 מזל טוב! סיימת במקום הראשון השבוע וזכית ב-5,000 SLH!")
-            logger.info(f"🏆 WEEKLY PRIZE GIVEN TO: {winner_id}")
-        cur.close(); conn.close()
-    except Exception as e:
-        logger.error(f"Prize error: {e}")
+        with open("wallet.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except:
+        return "<html><body><h1>Wallet Temp Offline</h1></body></html>"
 
-# תפריט ראשי מתוקן
 def main_menu(uid):
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    # שינוי ה-URL לשרת ה-Railway הנוכחי כדי למנוע 404
-    wallet_url = f"{BASE_URL}/wallet_page"
+    wallet_url = f"{WEBHOOK_URL.replace('/webhook', '')}/wallet_page"
     
     markup.add(KeyboardButton("💎 ארנק SUPREME (גרפי)", web_app=WebAppInfo(url=wallet_url)))
     markup.add("📊 פורטפוליו", "🏆 טבלת אלופים")
     markup.add("👥 הזמן חברים", "🕹️ ארקייד", "🛒 חנות", "📋 מצב מערכת")
-    if get_user_role(uid) >= 1: markup.add("🛠️ פאנל ניהול")
     return markup
-
-@app.get("/wallet_page", response_class=HTMLResponse)
-async def get_wallet():
-    with open("wallet.html", "r", encoding="utf-8") as f:
-        return f.read()
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -61,7 +45,14 @@ def start(message):
     conn = get_db(); cur = conn.cursor()
     cur.execute("INSERT INTO users (user_id, balance) VALUES (%s, 1000) ON CONFLICT DO NOTHING", (uid,))
     conn.commit(); cur.close(); conn.close()
-    bot.send_message(message.chat.id, "💎 **DIAMOND SUPREME SYSTEM**\nברוך הבא. הארנק והבונוסים שלך פעילים!", reply_markup=main_menu(uid))
+    bot.send_message(message.chat.id, "<b>💎 DIAMOND SUPREME SYSTEM</b>\nהארנק והבונוסים שלך פעילים!", reply_markup=main_menu(uid), parse_mode="HTML")
+
+@bot.message_handler(func=lambda m: m.text == "👥 הזמן חברים")
+def send_ref_link(message):
+    uid = message.from_user.id
+    ref_link = f"https://t.me/{bot.get_me().username}?start={uid}"
+    msg = f"🚀 <b>הזמן חברים והרווח!</b>\n\nהלינק האישי שלך:\n<code>{ref_link}</code>"
+    bot.reply_to(message, msg, parse_mode="HTML")
 
 @bot.message_handler(func=lambda m: m.text == "🏆 טבלת אלופים")
 def show_leaderboard(message):
@@ -69,10 +60,10 @@ def show_leaderboard(message):
     cur.execute("SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT 10")
     top = cur.fetchall()
     cur.close(); conn.close()
-    msg = "🏆 **היכל התהילה** 🏆\n\n"
+    msg = "🏆 <b>היכל התהילה</b> 🏆\n\n"
     for i, u in enumerate(top):
-        msg += f"{i+1}. {str(u[0])[:5]}*** — {u[1]:,} SLH\n"
-    bot.reply_to(message, msg, parse_mode="Markdown")
+        msg += f"{i+1}. <code>{str(u[0])[:5]}***</code> — {u[1]:,} SLH\n"
+    bot.send_message(message.chat.id, msg, parse_mode="HTML")
 
 @app.post(f"/{TELEGRAM_TOKEN}/")
 async def process_webhook(request: Request):
@@ -83,10 +74,3 @@ async def process_webhook(request: Request):
 @app.on_event("startup")
 def on_startup():
     bot.set_webhook(url=f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}/")
-    # הפעלת הפרס האוטומטי בשרשור נפרד
-    def run_scheduler():
-        schedule.every().thursday.at("22:00").do(give_weekly_prize)
-        while True:
-            schedule.run_pending()
-            time.sleep(60)
-    threading.Thread(target=run_scheduler, daemon=True).start()

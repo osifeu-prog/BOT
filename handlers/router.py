@@ -1,6 +1,5 @@
 import requests, datetime
 from utils.config import TELEGRAM_API_URL, ADMIN_ID
-from db.users import update_user_balance, get_user_stats, get_total_stats
 
 def handle_message(message):
     chat_id = message.get("chat", {}).get("id")
@@ -8,41 +7,53 @@ def handle_message(message):
     text = message.get("text", "")
     dice = message.get("dice")
 
-    # 1. טיפול באנימציות טלגרם
+    # משחקי אנימציה - זיהוי תוצאה
     if dice:
-        v = dice.get("value")
-        e = dice.get("emoji")
-        win = 500 if (e == "🎰" and v in [1, 22, 43, 64]) or (e == "🎲" and v == 6) else 0
+        v, e = dice.get("value"), dice.get("emoji")
+        win = 1000 if (e == "🎰" and v in [1, 22, 43, 64]) or (e == "🎯" and v == 6) or (e == "🏀" and v == 5) else 0
         if win > 0:
-            update_user_balance(user_id, win)
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"🔥 זכייה מטורפת! +{win} SLH נוספו לארנק!"})
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"🎊 וואו! זכית ב-{win} SLH!"})
         return
 
-    # 2. פקודות מערכת
     if text.startswith("/start"):
-        msg = "💎 **DIAMOND ELITE ALPHA v10.0**\n\nברוך הבא למערכת הפיננסית המתקדמת בטלגרם.\nהשתמש בתפריט למטה או בכפתור הפקודות."
+        msg = "💎 **DIAMOND ELITE PRO v11.0**\n\nמערכת ה-AI והמסחר המלאה שלך.\nבחר באופציה המבוקשת:"
         kb = {"inline_keyboard": [
-            [{"text": "💳 הארנק שלי & ניהול", "web_app": {"url": "https://bot-production-2668.up.railway.app/"}}],
-            [{"text": "🤖 AI יועץ אישי", "callback_data": "ai_menu"}, {"text": "💰 משימות Earn", "callback_data": "tasks_menu"}],
-            [{"text": "📈 יומן שוק", "callback_data": "journal_view"}, {"text": "🏆 מובילים", "callback_data": "leaderboard"}],
-            [{"text": "⚙️ פאנל אדמין", "callback_data": "admin_report"}] if user_id == str(ADMIN_ID) else []
+            [{"text": "💳 ארנק ומיני-אפ", "web_app": {"url": "https://bot-production-2668.up.railway.app/"}}],
+            [{"text": "🤖 AI יועץ (39 ש''ח ל-PRO)", "callback_data": "ai_vip_info"}],
+            [{"text": "🎰 מתחם משחקים", "callback_data": "games_hub"}, {"text": "📈 יומן שוק", "callback_data": "market_journal"}],
+            [{"text": "🏆 מובילים", "callback_data": "top_players"}, {"text": "👥 קבוצות ו-Earn", "callback_data": "earn_groups"}]
         ]}
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg, "reply_markup": kb, "parse_mode": "Markdown"})
 
-    # 3. טיפול ב-AI ויומן (כל טקסט אחר)
-    elif text and not text.startswith("/"):
-        res = f"🤖 **AI Assistant:**\nניתחתי את בקשתך: '{text}'.\nשמרתי תובנה זו ביומן המעקב שלך תחת קטגוריית 'שוק חופשי'."
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": res})
+def handle_callback(callback):
+    chat_id = callback["message"]["chat"]["id"]
+    user_id = str(callback["from"]["id"])
+    data = callback["data"]
+    requests.post(f"{TELEGRAM_API_URL}/answerCallbackQuery", json={"callback_query_id": callback["id"]})
 
-def handle_callback(callback_query):
-    c_id = callback_query.get("id")
-    chat_id = callback_query.get("message", {}).get("chat", {}).get("id")
-    data = callback_query.get("data", "")
-    requests.post(f"{TELEGRAM_API_URL}/answerCallbackQuery", json={"callback_query_id": c_id})
+    if data == "ai_vip_info":
+        msg = "🎓 **עוזר AI פיננסי PRO**\n\nבפתיחת מסלול זה (39 ש''ח חד-פעמי) תקבל:\n✅ מדריך 'איך לייצר רווחים מהבוט'\n✅ ניהול תיק השקעות אוטומטי\n✅ גישה ל-OpenAI ללא הגבלה\n\nלהפעלה, העבר 39 ש''ח ב-Bit/TON ושלח צילום מסך לאדמין."
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"})
 
-    if data == "tasks_menu":
-        msg = "🎯 **משימות Earn:**\n1. הצטרף לערוץ החדשות (+1000 SLH)\n2. הזמן 3 חברים (+2500 SLH)"
+    elif data == "games_hub":
+        kb = {"inline_keyboard": [
+            [{"text": "🎰 סלוט", "callback_data": "play_🎰"}, {"text": "🏀 כדורסל", "callback_data": "play_🏀"}],
+            [{"text": "🎯 קליעה למטרה", "callback_data": "play_🎯"}, {"text": "🎳 באולינג", "callback_data": "play_🎳"}]
+        ]}
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "בחר משחק:", "reply_markup": kb})
+
+    elif data.startswith("play_"):
+        emoji = data.split("_")[1]
+        requests.post(f"{TELEGRAM_API_URL}/sendDice", json={"chat_id": chat_id, "emoji": emoji})
+
+    elif data == "market_journal":
+        msg = "📅 **יומן שוק אחרון:**\n1. ביטקוין: תמיכה ב-98k\n2. סנטימנט: חיובי מאוד\n3. עדכון: נוספו משימות חדשות!"
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg})
-    elif data == "admin_report":
-        stats = get_total_stats()
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"📊 סטטוס: {stats[0]} משתמשים פעילים."})
+
+    elif data == "top_players":
+        msg = "🏆 **מובילי היהלומים:**\n1. Osif - 50,000 SLH\n2. AI_Bot - 20,000 SLH"
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg})
+
+    elif data == "earn_groups":
+        msg = "👥 **קהילה ומשימות:**\n- [קבוצת דיונים](https://t.me/example)\n- [ערוץ עדכונים](https://t.me/example)\n\nהצטרף וקבל 1000 SLH!"
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg, "disable_web_page_preview": False, "parse_mode": "Markdown"})

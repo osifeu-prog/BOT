@@ -31,6 +31,25 @@ def start(message):
     user_id = str(message.from_user.id)
     bot.send_message(message.chat.id, "💎 **DIAMOND SUPREME SYSTEM ONLINE**", reply_markup=main_menu())
 
+# --- פקודת אדמין להוספת טוקנים (החלום!) ---
+@bot.message_handler(commands=['add_cash'])
+def add_cash(message):
+    if str(message.from_user.id) != str(ADMIN_ID):
+        return
+    try:
+        args = message.text.split()
+        target_id = args[1]
+        amount = int(args[2])
+        
+        conn = get_db(); cur = conn.cursor()
+        cur.execute("UPDATE users SET balance = balance + %s WHERE user_id = %s", (amount, target_id))
+        conn.commit(); cur.close(); conn.close()
+        
+        bot.reply_to(message, f"✅ הופקדו {amount} SLH לחשבון {target_id} בהצלחה!")
+        bot.send_message(target_id, f"🎁 **מתנה מהנהלת המערכת!**\nהופקדו בחשבונך {amount} SLH.")
+    except Exception as e:
+        bot.reply_to(message, "❌ שימוש: /add_cash [ID] [כמות]")
+
 @bot.message_handler(func=lambda m: True)
 def handle_text(message):
     text = message.text
@@ -40,9 +59,13 @@ def handle_text(message):
     if text == "💳 פורטפוליו & ארנק":
         conn = get_db(); cur = conn.cursor()
         cur.execute("SELECT balance, xp, rank FROM users WHERE user_id = %s", (user_id,))
-        u = cur.fetchone(); if not u: cur.execute('INSERT INTO users (user_id) VALUES (%s) RETURNING balance, xp, rank', (user_id,)); u = cur.fetchone()
+        u = cur.fetchone()
+        if not u:
+            cur.execute("INSERT INTO users (user_id) VALUES (%s) RETURNING balance, xp, rank", (user_id,))
+            u = cur.fetchone()
+            conn.commit()
         cur.close(); conn.close()
-        bot.send_message(chat_id, f"👤 **פרופיל משקיע**\n💰 יתרה: {u[0] if u else 0} SLH\n🏅 דרגה: {u[2] if u else 'Starter'}")
+        bot.send_message(chat_id, f"👤 **פרופיל משקיע**\n💰 יתרה: {u[0]} SLH\n🏅 דרגה: {u[2]}")
 
     elif text == "🤖 סוכן AI אסטרטגי":
         bot.send_message(chat_id, get_market_insight(user_id))
@@ -51,13 +74,20 @@ def handle_text(message):
         bot.send_message(chat_id, f"{get_marketplace()}\n\n💎 **חבילות:**\n{TOKEN_PACKS}")
 
     elif text == "🕹️ ארקייד Supreme":
-        bot.send_message(chat_id, f"🎰 **סיכויי זכייה כרגע:** {WIN_CHANCE}%\nבחר משחק בקוביה.")
+        bot.send_message(chat_id, f"🎰 **סיכויי זכייה:** {WIN_CHANCE}%\nהימור על קוביה (6) ב-50 SLH:", 
+                         reply_markup=telebot.types.InlineKeyboardMarkup().add(
+                             telebot.types.InlineKeyboardButton("🎲 שחק עכשיו", callback_data="play_50")))
 
     elif text == "🎁 הזמן חברים":
         bot.send_message(chat_id, f"🔗 לינק השותפים שלך:\nhttps://t.me/{BOT_USERNAME}?start={user_id}")
 
     elif text == "📞 תמיכה וקשר":
         bot.send_message(chat_id, get_support_info(), parse_mode="Markdown")
+
+@bot.callback_query_handler(func=lambda call: call.data == "play_50")
+def callback_play(call):
+    res = play_dice(call.message.chat.id, str(call.from_user.id), 50, 6)
+    bot.send_message(call.message.chat.id, res)
 
 @app.on_event("startup")
 def on_startup():

@@ -1,20 +1,11 @@
 import os
-
-# Telegram Settings
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
-
-# Admin Settings
 ADMIN_ID = os.getenv("ADMIN_ID")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "osifeu_prog")
-
-# Payment & Links
 TON_WALLET = os.getenv("TON_WALLET")
 PRICE_SH = os.getenv("PRICE_SH", "99")
 TEST_GROUP_LINK = os.getenv("TEST_GROUP_LINK", "https://t.me/+2zNbLBrgrQkwZDhk")
 PARTICIPANTS_GROUP_LINK = os.getenv("TEST_GROUP_LINK")
-
-# Infrastructure
 DATABASE_URL = os.getenv("DATABASE_URL")
-REDIS_URL = os.getenv("REDIS_URL")
 PORT = int(os.getenv("PORT", 8080))

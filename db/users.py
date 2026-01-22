@@ -1,6 +1,4 @@
 import sqlite3
-import os
-
 DB_PATH = "database.db"
 
 def get_user_stats(user_id):
@@ -18,15 +16,14 @@ def get_user_stats(user_id):
 def update_user_balance(user_id, amount):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    get_user_stats(user_id) # מוודא שהמשתמש קיים
     cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, str(user_id)))
     conn.commit()
     conn.close()
 
-def get_all_users():
+def get_total_stats():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM users")
-    users = [row[0] for row in cursor.fetchall()]
+    cursor.execute("SELECT COUNT(*), SUM(balance) FROM users")
+    stats = cursor.fetchone()
     conn.close()
-    return users
+    return stats

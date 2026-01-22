@@ -3,93 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Diamond Retro</title>
+    <title>Diamond Elite Arcade</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { background: #000; color: #fff; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; text-align: center; }
-        canvas { background: #5c94fc; display: block; margin: 0 auto; border-bottom: 5px solid #885010; width: 100%; height: 250px; }
-        .ui { padding: 15px; background: #222; border-bottom: 2px solid #ffcc00; }
-        .gold { color: #ffcc00; font-weight: bold; }
-        .btn { background: #ffcc00; color: #000; padding: 15px 30px; border-radius: 10px; font-weight: bold; border: none; margin-top: 10px; font-size: 18px; }
+        body { background: #0a0a0c; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; text-align: center; }
+        .gold-btn { background: linear-gradient(45deg, #bf953f, #fcf6ba); color: #000; border: none; padding: 15px; border-radius: 12px; font-weight: 900; width: 80%; margin: 10px; cursor: pointer; }
+        .card { background: #16161a; border: 1px solid #bf953f; border-radius: 20px; padding: 20px; margin: 15px; box-shadow: 0 0 20px rgba(191,149,63,0.2); }
+        canvas { background: #5c94fc; border-radius: 15px; width: 90%; height: 200px; margin: 10px 0; border: 3px solid #333; }
     </style>
 </head>
 <body>
-    <div class="ui">
-        <div>SCORE: <span id="score">0</span> | SLH: <span id="bal" class="gold">טוען...</span></div>
+    <div class="card">
+        <h2 style="margin:0;">DIAMOND <span style="color:#bf953f;">ELITE</span></h2>
+        <div id="bal" style="font-size: 32px; font-weight: 900; color:#bf953f;">---</div>
+        <div style="font-size: 12px; opacity: 0.6;">CURRENT SLH BALANCE</div>
     </div>
-    <canvas id="gameCanvas"></canvas>
-    <div class="ui">
-        <button class="btn" onclick="startGame()" id="startBtn">START GAME</button>
+
+    <div class="card">
+        <h3>🎮 RETRO MARIO</h3>
+        <canvas id="gameCanvas"></canvas>
+        <button class="gold-btn" onclick="startGame()">PLAY & EARN</button>
     </div>
+
+    <button class="gold-btn" style="background: #222; color: #fff; border: 1px solid #444;" onclick="dailySpin()">🎁 DAILY ROULETTE</button>
 
     <script>
         let tg = window.Telegram.WebApp;
         let userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "12345";
+        
+        async function load() {
+            const r = await fetch('/api/user/' + userId);
+            const d = await r.json();
+            document.getElementById('bal').innerText = d.slh.toLocaleString();
+        }
+
+        // Game Logic Simple
         let canvas = document.getElementById('gameCanvas');
         let ctx = canvas.getContext('2d');
-        
-        async function updateBalance() {
-            try {
-                const r = await fetch('/api/user/' + userId);
-                const d = await r.json();
-                document.getElementById('bal').innerText = d.slh;
-            } catch(e) { document.getElementById('bal').innerText = "ERR"; }
-        }
-
-        let player = { x: 50, y: 200, w: 30, h: 30, dy: 0, jump: -10, ground: 200 };
-        let obstacles = [];
-        let score = 0;
-        let gameRunning = false;
-
-        function render() {
-            if (!gameRunning) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Player
-            player.dy += 0.6;
-            player.y += player.dy;
-            if (player.y > player.ground) { player.y = player.ground; player.dy = 0; }
-            ctx.fillStyle = "red";
-            ctx.fillRect(player.x, player.y, player.w, player.h);
-
-            // Obstacles
-            if (Math.random() < 0.02) obstacles.push({ x: canvas.width, y: 210, w: 20, h: 20 });
-            obstacles.forEach((os, i) => {
-                os.x -= 6;
-                ctx.fillStyle = "black";
-                ctx.fillRect(os.x, os.y, os.w, os.h);
-                if (player.x < os.x + os.w && player.x + player.w > os.x && player.y < os.y + os.h && player.y + player.h > os.y) {
-                    gameOver();
-                }
-            });
-            
-            score++;
-            document.getElementById('score').innerText = score;
-            requestAnimationFrame(render);
-        }
-
         function startGame() {
-            if (gameRunning) return;
-            score = 0; obstacles = []; gameRunning = true;
-            document.getElementById('startBtn').style.display = "none";
-            render();
+            Swal.fire('Coming Soon', 'המנוע הגרפי המלא בטעינה...', 'info');
         }
 
-        async function gameOver() {
-            gameRunning = false;
-            document.getElementById('startBtn').style.display = "inline-block";
-            tg.HapticFeedback.notificationOccurred('error');
-            alert('Game Over! Score: ' + score);
-            await fetch(/api/save-game-score?user_id=--force{userId}&score=--force{score}, {method: 'POST'});
-            updateBalance();
+        async function dailySpin() {
+            tg.HapticFeedback.impactOccurred('heavy');
+            Swal.fire({ title: 'מסתובב...', timer: 1500, didOpen: () => Swal.showLoading() }).then(async () => {
+                await fetch('/api/save-game-score?user_id=' + userId + '&score=500', {method: 'POST'});
+                Swal.fire('זכית!', 'קיבלת 50 SLH מתנה יומית', 'success');
+                load();
+            });
         }
 
-        canvas.addEventListener('touchstart', (e) => { 
-            e.preventDefault();
-            if (player.y == player.ground) player.dy = player.jump; 
-        });
-
-        updateBalance();
+        load();
         tg.expand();
     </script>
 </body>

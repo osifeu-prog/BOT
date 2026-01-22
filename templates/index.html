@@ -5,29 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #0b0b0e; color: #fff; font-family: sans-serif; text-align: center; }
-        .wallet-card { background: linear-gradient(45deg, #16161d, #1f1f2e); border: 2px solid #bf953f; padding: 25px; border-radius: 20px; margin: 20px; }
-        .xp-bar { background: #333; height: 10px; border-radius: 5px; margin-top: 15px; }
-        .xp-fill { background: gold; height: 100%; width: 60%; }
-        .btn { background: #bf953f; color: #000; padding: 15px; width: 80%; border-radius: 12px; border: none; font-weight: bold; margin-top: 20px; }
+        body { background: #050505; color: #fff; font-family: -apple-system, system-ui; text-align: center; margin: 0; padding: 15px; }
+        .header { background: linear-gradient(135deg, #bf953f, #fcf6ba); color: #000; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(191,149,63,0.3); }
+        .stats-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .stat-box { background: #1a1a1a; padding: 15px; border-radius: 15px; border: 1px solid #333; }
+        .btn-action { background: #fff; color: #000; padding: 15px; width: 100%; border-radius: 12px; margin-top: 20px; border: none; font-weight: bold; }
+        .ticker { color: #bf953f; font-size: 12px; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div class="wallet-card">
-        <h3>💳 הארנק האישי</h3>
-        <h1 id="bal">...</h1>
-        <div class="xp-bar"><div class="xp-fill"></div></div>
-        <p>דרגה: Gold Member</p>
+    <div class="header">
+        <small>Diamond Elite Wallet</small>
+        <h1 id="bal">... SLH</h1>
     </div>
-    <button class="btn" onclick="tg.close()">חזרה לצ'אט למשחקים</button>
+    <div class="stats-container">
+        <div class="stat-box">🏆 XP<br><b id="xp">...</b></div>
+        <div class="stat-box">🏅 דרגה<br><b id="rank">Starter</b></div>
+    </div>
+    <div class="ticker"><marquee>LIVE: הביטקוין חוצה את רמת ההתנגדות • בונוס יומי מוכן לאיסוף</marquee></div>
+    <button class="btn-action" onclick="tg.close()">🎰 שחק בקוביה בצ'אט</button>
     <script>
         let tg = window.Telegram.WebApp;
-        async function load() {
+        async function update() {
             const r = await fetch('/api/user/' + tg.initDataUnsafe.user.id);
             const d = await r.json();
-            document.getElementById('bal').innerText = d.slh + ' SLH';
+            document.getElementById('bal').innerText = d.slh.toLocaleString() + ' SLH';
+            document.getElementById('xp').innerText = (d.xp || 0);
         }
-        load(); tg.expand();
+        update(); tg.expand();
     </script>
 </body>
 </html>

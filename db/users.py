@@ -1,40 +1,32 @@
-﻿import sqlite3
-from datetime import datetime
+import sqlite3
+import os
 
-DB_PATH = "diamond_bot.db"
+DB_PATH = "database.db"
 
-def update_user_balance(user_id, amount, currency="slh"):
+def get_user_stats(user_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    column = "slh_balance" if currency == "slh" else "balance"
-    cursor.execute(f"UPDATE users SET {column} = {column} + ? WHERE telegram_id = ?", (amount, user_id))
+    cursor.execute("SELECT user_id, balance FROM users WHERE user_id = ?", (str(user_id),))
+    user = cursor.fetchone()
+    if not user:
+        cursor.execute("INSERT INTO users (user_id, balance) VALUES (?, ?)", (str(user_id), 0))
+        conn.commit()
+        user = (str(user_id), 0)
+    conn.close()
+    return user
+
+def update_user_balance(user_id, amount):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    get_user_stats(user_id) # מוודא שהמשתמש קיים
+    cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, str(user_id)))
     conn.commit()
     conn.close()
 
-def transfer_funds(from_id, to_id, amount, currency="slh"):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    try:
-        # בדיקת יתרה
-        column = "slh_balance" if currency == "slh" else "balance"
-        cursor.execute(f"SELECT {column} FROM users WHERE telegram_id = ?", (from_id,))
-        balance = cursor.fetchone()[0]
-        if balance < amount:
-            return False, "יתרה נמוכה מדי"
-        
-        # ביצוע העברה
-        cursor.execute(f"UPDATE users SET {column} = {column} - ? WHERE telegram_id = ?", (amount, from_id))
-        cursor.execute(f"UPDATE users SET {column} = {column} + ? WHERE telegram_id = ?", (amount, to_id))
-        conn.commit()
-        return True, "העברה בוצעה בהצלחה"
-    except Exception as e:
-        return False, str(e)
-    finally:
-        conn.close()
 def get_all_users():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT telegram_id, username, slh_balance, balance FROM users")
-    users = cursor.fetchall()
+    cursor.execute("SELECT user_id FROM users")
+    users = [row[0] for row in cursor.fetchall()]
     conn.close()
     return users

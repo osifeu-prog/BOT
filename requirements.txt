@@ -1,5 +1,7 @@
-fastapi
-uvicorn
+pyTelegramBotAPI
+psycopg2-binary
+python-dotenv
 requests
-jinja2
-python-multipart
+alembic
+sqlalchemy
+redis

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { background: #0f172a; color: white; font-family: system-ui; text-align: center; padding: 20px; }
+        .card { 
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 20px; padding: 25px; margin: 20px 0;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid #475569;
+        }
+        .balance { font-size: 32px; font-weight: bold; color: #38bdf8; margin: 10px 0; }
+        .btn { 
+            background: #38bdf8; color: #0f172a; border: none; padding: 12px 25px; 
+            border-radius: 12px; font-weight: bold; width: 100%; margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <p>יתרה נוכחית</p>
+        <div class="balance"> 1,250.00</div>
+        <p>Diamond Holder Rank: Gold 🏆</p>
+    </div>
+    <button class="btn" onclick="Telegram.WebApp.close()">חזרה לבוט</button>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        // כאן בהמשך נמשוך נתונים אמיתיים מה-API
+    </script>
+</body>
+</html>

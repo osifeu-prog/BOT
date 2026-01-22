@@ -11,65 +11,38 @@ app = FastAPI()
 
 def get_db(): return psycopg2.connect(DATABASE_URL)
 
-def get_user_role(uid):
-    if str(uid) == str(ADMIN_ID): return 10
-    try:
-        conn = get_db(); cur = conn.cursor()
-        cur.execute("SELECT admin_level FROM users WHERE user_id = %s", (str(uid),))
-        res = cur.fetchone()
-        cur.close(); conn.close()
-        return res[0] if res and res[0] is not None else 0
-    except: return 0
-
-def main_menu(uid):
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    role = get_user_role(uid)
-    
-    # מיני אפים נפרדים
-    wallet_app = WebAppInfo(url="https://slh-nft.com/wallet") # דף הארנק
-    site_app = WebAppInfo(url="https://slh-nft.com")        # דף הבית
-    
-    markup.add(
-        KeyboardButton("💳 ארנק גרפי", web_app=wallet_app),
-        KeyboardButton("🌐 אתר רשמי", web_app=site_app)
-    )
-    markup.add("📊 פורטפוליו", "🤖 סוכן AI", "🕹️ ארקייד", "🛒 חנות", "🎁 בונוס יומי", "👥 הזמן חברים", "📋 מצב מערכת")
-    if role >= 1: markup.add("🛠️ פאנל ניהול")
-    return markup
-
-@bot.message_handler(commands=['all'])
-def list_all_commands(message):
-    role = get_user_role(message.from_user.id)
-    cmd_text = (
-        "📚 **מדריך פקודות Diamond Supreme**\n\n"
-        "👤 **פקודות משתמש:**\n"
-        "/start - ריענון הבוט\n"
-        "/all - הצגת כל הפקודות\n"
-        "/profile - הפרופיל שלי\n"
-        "/ai - ניתוח שוק מהיר\n\n"
-        "💸 **העברות:**\n"
-        "/send [ID] [כמות] - העברת נקודות לחבר\n\n"
-    )
-    if role >= 1:
-        cmd_text += (
-            "🛡️ **פקודות אדמין:**\n"
-            "/broadcast [טקסט] - הודעה לכולם\n"
-            "/stats - נתוני מערכת\n"
-        )
-    if role == 10:
-        cmd_text += "👑 /set_admin [ID] [1-10] - מינוי מנהל\n"
-    
-    bot.reply_to(message, cmd_text, parse_mode="Markdown")
-
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.from_user.id)
+    # בדיקה אם המשתמש הגיע דרך לינק הפניה
+    ref_id = message.text.split()[1] if len(message.text.split()) > 1 else None
+    
     conn = get_db(); cur = conn.cursor()
-    cur.execute("INSERT INTO users (user_id) VALUES (%s) ON CONFLICT DO NOTHING", (uid,))
+    cur.execute("SELECT user_id FROM users WHERE user_id = %s", (uid,))
+    if not cur.fetchone():
+        cur.execute("INSERT INTO users (user_id, balance) VALUES (%s, 1000) ON CONFLICT DO NOTHING", (uid,))
+        logger.info(f"🆕 NEW USER JOINED: {uid}")
+        if ref_id and ref_id != uid:
+            cur.execute("UPDATE users SET balance = balance + 500 WHERE user_id = %s", (ref_id,))
+            cur.execute("UPDATE users SET balance = balance + 200 WHERE user_id = %s", (uid,))
+            logger.info(f"🎁 REFERRAL BONUS: {ref_id} invited {uid}")
+    
     conn.commit(); cur.close(); conn.close()
-    bot.send_message(message.chat.id, "💎 **DIAMOND SUPREME SYSTEM**\nברוך הבא לממשק הניהול החדש.", reply_markup=main_menu(uid))
+    
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    wallet_url = f"https://slh-nft.com/wallet?id={uid}"
+    markup.add(KeyboardButton("💎 ארנק SUPREME (גרפי)", web_app=WebAppInfo(url=wallet_url)))
+    markup.add("📊 פורטפוליו", "👥 הזמן חברים", "🕹️ ארקייד", "📋 מצב מערכת")
+    
+    bot.send_message(message.chat.id, f"💎 **WELCOME TO DIAMOND SAAS**\nהארנק שלך מוכן עם 1,000 SLH מתנה!", reply_markup=markup)
 
-# פונקציות האדמין והמערכת נשארות כאן (broadcast, set_admin, etc.)
+@bot.message_handler(func=lambda m: m.text == "👥 הזמן חברים")
+def send_ref_link(message):
+    uid = message.from_user.id
+    ref_link = f"https://t.me/{bot.get_me().username}?start={uid}"
+    msg = f"🚀 **הזמן חברים והרווח כסף!**\n\nעל כל חבר שיצטרף דרך הלינק שלך:\n💰 אתה תקבל **500 SLH**\n🎁 החבר יקבל **200 SLH** בונוס!\n\nהלינק שלך:\n{ref_link}"
+    bot.reply_to(message, msg, parse_mode="Markdown")
+
 @app.post(f"/{TELEGRAM_TOKEN}/")
 async def process_webhook(request: Request):
     body = (await request.body()).decode('utf-8')

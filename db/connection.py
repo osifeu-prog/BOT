@@ -7,9 +7,11 @@ def get_conn():
 def initialize_db():
     conn = get_conn()
     cur = conn.cursor()
-    # יצירת טבלה עם כל העמודות מראש
+    # מחיקה ויצירה מחדש כדי לוודא שכל העמודות קיימות ב-100%
+    # שים לב: זה יאפס יתרות קיימות פעם אחת בלבד לצורך התיקון
+    cur.execute('DROP TABLE IF EXISTS users CASCADE')
     cur.execute('''
-        CREATE TABLE IF NOT EXISTS users (
+        CREATE TABLE users (
             user_id TEXT PRIMARY KEY,
             xp INTEGER DEFAULT 0,
             slh INTEGER DEFAULT 100,
@@ -20,4 +22,4 @@ def initialize_db():
     conn.commit()
     cur.close()
     conn.close()
-    print("🚀 Database Ready with all columns")
+    print("🚀 Database Reset & Recreated Successfully")

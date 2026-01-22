@@ -1,24 +1,26 @@
 ﻿import random
 import asyncio
 from utils.telegram import send_message
-from db.connection import get_conn
 
 async def play_slots(user_id):
-    symbols = ["💎", "💰", "💵", "🔥", "👑"]
-    # הודעת טעינה/אנימציה
-    status_msg = send_message(user_id, "🎰 **מפעיל את המכונה...**")
-    
-    # "אנימציה" פשוטה של החלפת סמלים
-    for _ in range(3):
-        fake_res = [random.choice(symbols) for _ in range(3)]
-        # כאן בדרך כלל נשתמש ב-Edit Message, אבל לצורך הפשטות נשלח הודעה חדשה או נחכה
-        await asyncio.sleep(0.5)
+    # הודעת טעינה מעוצבת
+    send_message(user_id, "🎰 *Spinning the Reels...* \n💎 💎 💎")
+    await asyncio.sleep(1.2)
 
+    symbols = ["💎", "💰", "💵", "🔥", "👑"]
     res = [random.choice(symbols) for _ in range(3)]
+    
+    # עיצוב ויזואלי של המכונה
+    machine = (
+        "╔════════════╗\n"
+        f"  ║  {res[0]}  ║  {res[1]}  ║  {res[2]}  ║\n"
+        "╚════════════╝"
+    )
+    
     win = len(set(res)) == 1
+    if win:
+        msg = f"🎰 *JACKPOT* 🎰\n\n{machine}\n\n🎊 *מזל טוב!* זכית בקוד קופון בלעדי:\nVIP-PRO-20 \n(בתוקף ל-15 דקות הקרובות)"
+    else:
+        msg = f"🎰 *SLOT RESULTS* 🎰\n\n{machine}\n\n💡 *טיפ:* סוחרים מקצועיים יודעים מתי להמשיך ומתי לעצור. נסה שוב בעוד שעה!"
     
-    display = f"┃ {res[0]} ┃ {res[1]} ┃ {res[2]} ┃"
-    result_text = "✨ **זכיית ענק!** ✨\nקיבלת קוד קופון ל-20% הנחה: VIP20" if win else "❌ **כמעט!** נסה שוב בעוד שעה."
-    
-    final_msg = f"🎰 **SLOT MACHINE** 🎰\n\n{display}\n\n{result_text}"
-    send_message(user_id, final_msg)
+    send_message(user_id, msg)

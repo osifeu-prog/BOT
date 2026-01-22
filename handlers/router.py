@@ -1,35 +1,43 @@
-﻿from utils.telegram import send_message
-from buttons.menus import get_main_menu, get_buyer_menu
+﻿import requests
+from utils.config import TELEGRAM_API_URL, ADMIN_ID, BOT_USERNAME, REF_REWARD, PRICE_SH, ZIP_LINK
+from buttons.menus import get_main_menu
 from db.users import add_user
-from db.buyers import is_buyer
-from db.admins import is_admin
-from utils.config import ADMIN_ID
-import requests
-from utils.config import TELEGRAM_API_URL
 
 async def handle_message(message):
     user_id = message["from"]["id"]
-    lang = "he"
-    
-    # טיפול בתמונות
-    if "photo" in message:
-        send_message(user_id, "✅ **התמונה התקבלה!** המנהל בודק את ההעברה שלך.")
-        photo_id = message["photo"][-1]["file_id"]
-        requests.post(f"{TELEGRAM_API_URL}/sendPhoto", json={
-            "chat_id": ADMIN_ID,
-            "photo": photo_id,
-            "caption": f"💰 **הוכחת תשלום!**\nמאת: {user_id}\nשם: {message['from'].get('first_name')}"
-        })
-        return
-
     text = message.get("text", "")
     
+    if "photo" in message:
+        # טיפול בהוכחת תשלום (נשאר כפי שהיה)
+        photo_id = message["photo"][-1]["file_id"]
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
+            "chat_id": ADMIN_ID,
+            "text": f"💰 **הוכחת תשלום חדשה!**\nמאת: {user_id}",
+            "reply_markup": {"inline_keyboard": [[{"text": "✅ אשר גישה", "callback_data": f"approve_{user_id}"}]]}
+        })
+        requests.post(f"{TELEGRAM_API_URL}/sendPhoto", json={"chat_id": ADMIN_ID, "photo": photo_id})
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "✅ התמונה התקבלה! המנהל בודק את ההעברה."})
+        return
+
     if text.startswith("/start"):
-        parts = text.split()
-        referrer = parts[1] if len(parts) > 1 and parts[1].isdigit() else None
-        add_user(user_id, int(referrer) if referrer else None)
+        add_user(user_id)
         
-        if is_buyer(user_id):
-            send_message(user_id, "👑 **ברוך הבא ללובי ה-VIP!**", {"inline_keyboard": get_buyer_menu(lang)})
-        else:
-            send_message(user_id, "🔥 **מוכן להתחיל להרוויח?**", {"inline_keyboard": get_main_menu(lang, user_id)})
+        welcome_text = (
+            f"🏆 **ברוך הבא לנבחרת ה-VIP** 🏆\n\n"
+            f"הגעת למקום שבו הופכים ידע לכסף\\.\n\n"
+            f"🤝 תוכנית שותפים: **{REF_REWARD}% עמלה**\n"
+            f"💰 מחיר הצטרפות: {PRICE_SH}"
+        )
+        
+        menu = get_main_menu("he", user_id)
+        
+        # אם יש לינק לתמונה במשתנה ZIP_LINK או בערך קבוע - נשתמש בו כבאנר
+        banner_url = "https://images.unsplash.com/photo-1611974717535-7c8059622843?q=80&w=1000" # דוגמה לבאנר שוק ההון
+        
+        requests.post(f"{TELEGRAM_API_URL}/sendPhoto", json={
+            "chat_id": user_id,
+            "photo": banner_url,
+            "caption": welcome_text,
+            "parse_mode": "MarkdownV2",
+            "reply_markup": {"inline_keyboard": menu}
+        })

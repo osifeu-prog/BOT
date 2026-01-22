@@ -1,14 +1,13 @@
 ﻿from utils.telegram import send_message
 from db.slots import play_slots
-from utils.config import TON_WALLET, PRICE_SH
+from utils.config import PRICE_SH, TON_WALLET
 
 async def menu_callback(callback):
     user_id = callback["from"]["id"]
     data = callback["data"]
     
     if data == "menu_slots":
-        await play_slots(user_id, "he")
-    
+        play_slots(user_id)
     elif data == "menu_buy":
-        pay_msg = f"💳 **רכישת הקורס המלא**\n\nמחיר: {PRICE_SH} ש''ח\nכתובת TON למשלוח:\n{TON_WALLET}\n\nלאחר ההעברה, שלח צילום מסך לאדמין לאישור."
-        send_message(user_id, pay_msg)
+        msg = f"💳 שלח {PRICE_SH} שח לכתובת:\n`{TON_WALLET}`\nושלח צילום מסך לאדמין."
+        send_message(user_id, msg)

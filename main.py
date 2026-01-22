@@ -1,24 +1,27 @@
 ﻿from fastapi import FastAPI, Request
 import requests
-from utils.config import TELEGRAM_API_URL, PORT, DATABASE_URL
+from utils.config import TELEGRAM_API_URL, PORT
 from handlers.router import handle_message
 from handlers.callback_router import handle_callback
-from db.connection import initialize_db # ייבוא האתחול
+from db.connection import initialize_db
 import uvicorn, os
 
 app = FastAPI()
 
 @app.on_event("startup")
 async def startup_event():
-    # 1. אתחול בסיס הנתונים (יחזיר את הלוגים של הפוסטגרס)
-    print("🔄 Initializing Database...")
     initialize_db()
     
-    # 2. ניקוי והגדרת Webhook מול טלגרם
-    webhook_url = f"https://bot-production-2668.up.railway.app/webhook"
+    # שימוש בכתובת המדויקת של Railway
+    webhook_url = "https://bot-production-2668.up.railway.app/webhook"
+    
     print(f"📡 Setting Webhook to: {webhook_url}")
-    requests.get(f"{TELEGRAM_API_URL}/setWebhook?url={webhook_url}&drop_pending_updates=True")
-    print("✅ System Online & Webhook Updated")
+    set_resp = requests.get(f"{TELEGRAM_API_URL}/setWebhook?url={webhook_url}&drop_pending_updates=True").json()
+    print(f"📡 Telegram Response: {set_resp}")
+    
+    # בדיקה אם ה-Webhook הוגדר בהצלחה
+    info = requests.get(f"{TELEGRAM_API_URL}/getWebhookInfo").json()
+    print(f"🔍 Current Webhook Info: {info}")
 
 @app.post("/webhook")
 async def telegram_webhook(request: Request):

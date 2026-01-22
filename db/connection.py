@@ -1,5 +1,4 @@
 ﻿import psycopg2
-import os
 from utils.config import DATABASE_URL
 
 def get_conn():
@@ -8,7 +7,6 @@ def get_conn():
 def initialize_db():
     conn = get_conn()
     cur = conn.cursor()
-    # יצירת טבלאות אם לא קיימות
     cur.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id TEXT PRIMARY KEY,
@@ -21,5 +19,4 @@ def initialize_db():
     conn.commit()
     cur.close()
     conn.close()
-    print("✅ Tables initialized successfully")
-    print("🚀 System Online & Upgraded")
+    print("✅ DB Structure Ready")

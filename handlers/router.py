@@ -1,6 +1,8 @@
-import requests
+import requests, sqlite3
 from utils.config import TELEGRAM_API_URL, ADMIN_ID
-from db.users import update_user_balance, get_user_stats, get_total_stats
+
+def get_db():
+    return sqlite3.connect('database.db')
 
 def handle_message(message):
     chat_id = message.get("chat", {}).get("id")
@@ -8,31 +10,44 @@ def handle_message(message):
     text = message.get("text", "")
     dice = message.get("dice")
 
-    # משחקי אנימציה - זיהוי תוצאה ומתן XP/SLH
+    # 🎰 טיפול במשחקי אנימציה ועדכון כסף אמיתי
     if dice:
-        v, e = dice.get("value"), dice.get("emoji")
-        win = 500 if (e == "🎰" and v in [1, 22, 43, 64]) or (e == "🎲" and v == 6) else 0
+        val, emo = dice.get("value"), dice.get("emoji")
+        win = 0
+        if emo == "🎰" and val in [1, 22, 43, 64]: win = 777
+        elif emo in ["🎯", "🏀", "🎳"] and val >= 5: win = 250
+        
         if win > 0:
-            update_user_balance(user_id, win)
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"🎉 ניצחון! קיבלת {win} SLH וצברת XP!"})
+            conn = get_db(); c = conn.cursor()
+            c.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (win, user_id))
+            conn.commit(); conn.close()
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"🔥 זכייה! +{win} SLH התווספו לארנק!"})
         return
 
-    # פקודת START עם מערכת שותפים
+    # 🚀 תפריט התחלה ומערכת שותפים
     if text.startswith("/start"):
         ref_id = text.split(" ")[1] if len(text.split(" ")) > 1 else None
-        # כאן אפשר להוסיף לוגיקה של רישום רפראל ב-DB
-        
-        msg = "💎 **DIAMOND ELITE PRO - המערכת המלאה**\n\nברוך הבא לעוזר הפיננסי שלך.\nהשתמש בתפריט לביצוע פעולות:"
+        conn = get_db(); c = conn.cursor()
+        c.execute("INSERT OR IGNORE INTO users (user_id, referred_by) VALUES (?, ?)", (user_id, ref_id))
+        if ref_id and ref_id != user_id:
+             c.execute("UPDATE users SET balance = balance + 500 WHERE user_id = ?", (ref_id,))
+        conn.commit(); conn.close()
+
+        msg = "💎 **DIAMOND ELITE SUPREME**\nהעוזר הפיננסי המלא שלך מוכן."
         kb = {"inline_keyboard": [
-            [{"text": "💳 ארנק וניהול נכסים (Mini App)", "web_app": {"url": "https://bot-production-2668.up.railway.app/"}}],
-            [{"text": "🤖 AI PRO - מדריך ויועץ (39)", "callback_data": "ai_pro_offer"}],
-            [{"text": "🎰 משחקי אנימציה", "callback_data": "games_menu"}, {"text": "📈 יומן שוק", "callback_data": "view_journal"}],
-            [{"text": "🏆 מובילים", "callback_data": "leaderboard"}, {"text": "👥 שותפים ו-Earn", "callback_data": "referral_info"}]
+            [{"text": "💳 ארנק & Mini App", "web_app": {"url": "https://bot-production-2668.up.railway.app/"}}],
+            [{"text": "🤖 AI PRO (מדריך ב-39)", "callback_data": "ai_pro"}, {"text": "📈 יומן שוק אישי", "callback_data": "journal"}],
+            [{"text": "🎰 מתחם משחקים", "callback_data": "games"}, {"text": "🏆 מובילים", "callback_data": "top"}],
+            [{"text": "🌐 אתר SLH-NFT", "url": "https://slh-nft.com/"}, {"text": "👥 שותפים", "callback_data": "ref"}]
         ]}
-        if user_id == str(ADMIN_ID):
-            kb["inline_keyboard"].append([{"text": "📊 דאשבורד מנהל", "callback_data": "admin_stats"}])
-        
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg, "reply_markup": kb, "parse_mode": "Markdown"})
+
+    # 📝 שמירה ליומן (כל טקסט אחר)
+    elif text and not text.startswith("/"):
+        conn = get_db(); c = conn.cursor()
+        c.execute("INSERT INTO user_journal (user_id, entry) VALUES (?, ?)", (user_id, text))
+        conn.commit(); conn.close()
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "✅ נרשם ביומן השוק שלך."})
 
 def handle_callback(callback):
     chat_id = callback["message"]["chat"]["id"]
@@ -40,32 +55,21 @@ def handle_callback(callback):
     data = callback["data"]
     requests.post(f"{TELEGRAM_API_URL}/answerCallbackQuery", json={"callback_query_id": callback["id"]})
 
-    if data == "ai_pro_offer":
-        msg = ("💰 **מסלול AI PRO - עוזר אישי ללא הגבלה**\n\n"
-               "בתשלום חד-פעמי של **39 ש''ח** תקבל:\n"
-               "1️⃣ מדריך מקיף ליצירת רווחים עם ה-AI של הבוט.\n"
-               "2️⃣ עוזר טכני צמוד לניהול תיקי השקעות.\n"
-               "3️⃣ לימוד שוק ההון ומסחר קריפטו ב-Real-time.\n\n"
-               "להפעלה: שלח הודעה לאדמין או העבר TON לארנק המערכת.")
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"})
-
-    elif data == "games_menu":
-        kb = {"inline_keyboard": [
-            [{"text": "🎰 סלוט", "callback_data": "dice_🎰"}, {"text": "🎲 קוביה", "callback_data": "dice_🎲"}],
-            [{"text": "🏀 כדורסל", "callback_data": "dice_🏀"}, {"text": "🎯 חיצים", "callback_data": "dice_🎯"}]
-        ]}
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "בחר משחק מהיר בצ'אט:", "reply_markup": kb})
-
-    elif data.startswith("dice_"):
-        emoji = data.split("_")[1]
-        requests.post(f"{TELEGRAM_API_URL}/sendDice", json={"chat_id": chat_id, "emoji": emoji})
-
-    elif data == "leaderboard":
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "📊 **טבלת מובילים:**\n1. Osif - 50k SLH\n2. User224 - 12k SLH"})
-
-    elif data == "view_journal":
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "📝 **יומן שוק:**\nשמרת 3 תובנות על ביטקוין ו-TON בשבוע האחרון."})
-
-    elif data == "referral_info":
-        link = f"t.me/YourBotName?start={user_id}"
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"👥 **תוכנית שותפים:**\nעל כל חבר תקבל 500 SLH!\n\nלינק להזמנה: {link}", "parse_mode": "Markdown"})
+    if data == "ai_pro":
+        msg = "🎓 **מסלול AI PRO (39)**\nעוזר טכני לא מוגבל + מדריך רווחים.\nלהפעלה פנה לאדמין."
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg})
+    elif data == "games":
+        kb = {"inline_keyboard": [[{"text": "🎰", "callback_data": "d_🎰"}, {"text": "🏀", "callback_data": "d_🏀"}, {"text": "🎯", "callback_data": "d_🎯"}, {"text": "🎳", "callback_data": "d_🎳"}]]}
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "בחר משחק:", "reply_markup": kb})
+    elif data.startswith("d_"):
+        requests.post(f"{TELEGRAM_API_URL}/sendDice", json={"chat_id": chat_id, "emoji": data.split("_")[1]})
+    elif data == "top":
+        conn = get_db(); c = conn.cursor()
+        c.execute("SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT 5")
+        res = "\n".join([f"👤 {r[0]}: {r[1]} SLH" for r in c.fetchall()])
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"🏆 **מובילים:**\n{res}"})
+    elif data == "journal":
+        conn = get_db(); c = conn.cursor()
+        c.execute("SELECT entry FROM user_journal WHERE user_id = ? ORDER BY id DESC LIMIT 3", (user_id,))
+        res = "\n".join([f"• {r[0]}" for r in c.fetchall()])
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"📝 **תובנות אחרונות:**\n{res or 'היומן ריק.'}"})

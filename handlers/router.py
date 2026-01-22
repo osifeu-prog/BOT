@@ -4,22 +4,21 @@ from db.users import add_user
 from db.buyers import is_buyer
 from db.admins import is_admin
 from utils.config import ADMIN_ID
+import requests
+from utils.config import TELEGRAM_API_URL
 
 async def handle_message(message):
     user_id = message["from"]["id"]
     lang = "he"
     
-    # אם המשתמש שלח תמונה (הוכחת תשלום)
+    # טיפול בתמונות
     if "photo" in message:
-        send_message(user_id, "✅ **התמונה התקבלה!** המנהל בודק את ההעברה שלך כעת. תקבל הודעה ברגע שהגישה תאושר.")
-        # העברה לאדמין
+        send_message(user_id, "✅ **התמונה התקבלה!** המנהל בודק את ההעברה שלך.")
         photo_id = message["photo"][-1]["file_id"]
-        import requests
-        from utils.config import TELEGRAM_API_URL
         requests.post(f"{TELEGRAM_API_URL}/sendPhoto", json={
             "chat_id": ADMIN_ID,
             "photo": photo_id,
-            "caption": f"💰 **הוכחת תשלום חדשה!**\nמאת: {user_id}\nשם: {message['from'].get('first_name')}\n\nלאישור, השתמש בפאנל הניהול."
+            "caption": f"💰 **הוכחת תשלום!**\nמאת: {user_id}\nשם: {message['from'].get('first_name')}"
         })
         return
 
@@ -33,4 +32,4 @@ async def handle_message(message):
         if is_buyer(user_id):
             send_message(user_id, "👑 **ברוך הבא ללובי ה-VIP!**", {"inline_keyboard": get_buyer_menu(lang)})
         else:
-            send_message(user_id, "🔥 **ברוך הבא למכונת הרווחים!**\nבחר אפשרות:", {"inline_keyboard": get_main_menu(lang, user_id)})
+            send_message(user_id, "🔥 **מוכן להתחיל להרוויח?**", {"inline_keyboard": get_main_menu(lang, user_id)})

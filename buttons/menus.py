@@ -6,10 +6,16 @@ def get_main_menu(lang, user_id):
     share_link = f"https://t.me/{bot_username}?start={user_id}"
     
     return [
-        [{"text": "🚀 "+t(lang, "גישה לקורס הדיגיטלי", "Access Digital Course"), "callback_data": "menu_buy"}],
-        [{"text": "💎 "+t(lang, "חנות יהלומים (Slots)", "Diamond Shop"), "callback_data": "menu_slots"}],
-        [{"text": "🤝 "+t(lang, "תוכנית שותפים (50% עמלה)", "Affiliate Program"), "url": share_link}],
-        [{"text": "📞 "+t(lang, "תמיכה טכנית", "Support"), "url": "https://t.me/osifeu"}]
+        [{"text": "🚀 " + t(lang, "גישה לקורס הדיגיטלי", "Access Digital Course"), "callback_data": "menu_buy"}],
+        [{"text": "💎 " + t(lang, "חנות יהלומים (Slots)", "Diamond Shop"), "callback_data": "menu_slots"}],
+        [{"text": "🤝 " + t(lang, "תוכנית שותפים (50% עמלה)", "Affiliate Program"), "url": share_link}],
+        [{"text": "📞 " + t(lang, "תמיכה טכנית", "Support"), "url": "https://t.me/osifeu"}]
+    ]
+
+def get_buyer_menu(lang):
+    return [
+        [{"text": "📚 " + t(lang, "צפייה בתכני הקורס", "View Course Content"), "url": "https://google.com"}], # החלף בלינק לקורס
+        [{"text": "👥 " + t(lang, "קבוצת VIP", "VIP Group"), "url": "https://t.me/osifeu"}]
     ]
 
 def get_admin_menu():

@@ -1,46 +1,57 @@
 # -*- coding: utf-8 -*-
-import telebot, os, hashlib
+import telebot, os, psycopg2
 from utils.config import *
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
 
-# --- כלי עריכת פרוטוקול ---
-@bot.callback_query_handler(func=lambda call: call.data == "edit_vision")
-def start_edit_vision(call):
-    msg = bot.send_message(call.message.chat.id, "✍️ שלח לי עכשיו את הטקסט החדש ל-SLH_VISION.md:")
-    bot.register_next_step_handler(msg, save_vision)
+def get_db(): return psycopg2.connect(DATABASE_URL)
 
-def save_vision(message):
+# --- פקודת העברת SLH בין חברים (כלכלה חופשית) ---
+@bot.message_handler(commands=['send'])
+def send_coins(message):
     try:
-        with open("SLH_VISION.md", "w", encoding="utf-8") as f:
-            f.write(message.text)
-        bot.reply_to(message, "✅ הפרוטוקול עודכן בהצלחה בשרת!")
-    except Exception as e:
-        bot.reply_to(message, f"❌ שגיאה בעדכון: {str(e)}")
+        # פורמט: /send [ID] [כמות]
+        args = message.text.split()
+        recipient_id = args[1]
+        amount = int(args[2])
+        sender_id = str(message.from_user.id)
+        
+        if amount <= 0: raise ValueError()
 
-# --- מערכת בדיקות אדמין ---
-@bot.message_handler(commands=['admin'])
-def lab_admin_panel(message):
-    if str(message.from_user.id) != ADMIN_ID: return
-    
-    markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardButton("📝 ערוך חזון (Vision)", callback_data="edit_vision"))
-    markup.add(telebot.types.InlineKeyboardButton("🔍 בדיקת תקינות מערכת", callback_data="health_check"))
-    markup.add(telebot.types.InlineKeyboardButton("📄 צפה ב-Docs", callback_data="view_docs"))
-    
-    bot.send_message(message.chat.id, "🔬 **מעבדת SLH - מצב ניהול**", reply_markup=markup)
+        conn = get_db(); cur = conn.cursor()
+        # בדיקת יתרה
+        cur.execute("SELECT balance FROM users WHERE user_id = %s", (sender_id,))
+        balance = cur.fetchone()[0]
+        
+        if balance < amount:
+            bot.reply_to(message, "❌ יתרה נמוכה מדי לביצוע ההעברה.")
+        else:
+            # ביצוע ההעברה בתוך ה-Ledger
+            cur.execute("UPDATE users SET balance = balance - %s WHERE user_id = %s", (amount, sender_id))
+            cur.execute("UPDATE users SET balance = balance + %s WHERE user_id = %s", (amount, recipient_id))
+            # תיעוד התנועה (הזרע של ה-Blockchain)
+            cur.execute("INSERT INTO transactions (from_id, to_id, amount) VALUES (%s, %s, %s)", (sender_id, recipient_id, amount))
+            conn.commit()
+            bot.reply_to(message, f"✅ העברת {amount} SLH למשתמש {recipient_id} בוצעה בהצלחה!")
+            bot.send_message(recipient_id, f"💰 קיבלת {amount} SLH מהמשתמש {sender_id}!")
+        
+        cur.close(); conn.close()
+    except:
+        bot.reply_to(message, "📝 שימוש: /send [מזהה_משתמש] [כמות]")
 
-@bot.callback_query_handler(func=lambda call: call.data == "health_check")
-def run_health(call):
-    # בדיקה מהירה של המשתנים הקריטיים
-    status = "✅ הכל תקין" if TELEGRAM_TOKEN and DATABASE_URL else "❌ חסרים נתונים"
-    check_msg = (
-        f"🚑 **בדיקת מערכת:**\n\n"
-        f"🌐 Webhook: פעיל\n"
-        f"📊 Database: מחובר\n"
-        f"⚙️ משתני סביבה: {status}\n"
-        f"🛠️ גרסת קוד (Hash): {hashlib.sha256(open(__file__, 'rb').read()).hexdigest()[:8]}"
+# --- הצגת נתוני מאקרו של הכלכלה ---
+@bot.message_handler(commands=['economy'])
+def economy_stats(message):
+    conn = get_db(); cur = conn.cursor()
+    cur.execute("SELECT COUNT(*), SUM(balance) FROM users")
+    users_count, total_supply = cur.fetchone()
+    cur.close(); conn.close()
+    
+    msg = (
+        f"📊 **מצב הכלכלה של SLH**\n\n"
+        f"👥 מספר ריבונים בקהילה: {users_count}\n"
+        f"💰 סך מטבעות בסירקולציה: {total_supply}\n"
+        f"🏢 נדל"ן רשום: בקרוב..."
     )
-    bot.send_message(call.message.chat.id, check_msg)
+    bot.reply_to(message, msg, parse_mode="HTML")
 
-# שאר הפונקציות הסטנדרטיות...

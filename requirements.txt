@@ -1,0 +1,6 @@
+﻿fastapi
+uvicorn
+requests
+python-dotenv
+psycopg2-binary
+python-telegram-bot==13.15

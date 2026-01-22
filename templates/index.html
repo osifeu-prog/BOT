@@ -3,48 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diamond Arcade</title>
+    <title>Elite Arcade</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; margin: 0; }
-        .card { background: #111; border: 1px solid #bf953f; border-radius: 15px; padding: 20px; margin: 15px; }
-        .btn { background: linear-gradient(45deg, #bf953f, #fcf6ba); color: #000; padding: 15px; border-radius: 10px; border: none; font-weight: bold; width: 80%; margin: 10px; cursor: pointer; }
+        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 10px; }
+        .ticker { background: #bf953f; color: #000; padding: 5px; font-weight: bold; font-size: 12px; margin-bottom: 10px; border-radius: 5px; }
+        .card { background: #111; border: 1px solid #333; padding: 15px; border-radius: 15px; margin-bottom: 10px; }
+        .btn { background: linear-gradient(45deg, #bf953f, #fcf6ba); color: #000; padding: 12px; border-radius: 10px; width: 100%; border: none; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
+    <div class="ticker"><marquee>ישראל כהן זכה ב-250 SLH! • דניאל השלים משימת ערוץ • המחיר הנוכחי: 1 SLH = 1$</marquee></div>
     <div class="card">
-        <h2>יתרת SLH: <span id="bal">טוען...</span></h2>
+        <h2>היתרה שלך: <span id="bal" style="color:#bf953f">טוען...</span></h2>
+    </div>
+    <div class="card">
+        <h3>🎯 משימה יומית</h3>
+        <p>הצטרף לערוץ ה-VIP וקבל 100 SLH</p>
+        <button class="btn" onclick="window.open('https://t.me/osifeu_prog')">בצע משימה</button>
     </div>
     <div class="card">
         <h3>🎰 Daily Spin</h3>
-        <button class="btn" onclick="spin()">הפעל ספין יומי</button>
+        <button class="btn" onclick="play()">שחק עכשיו</button>
     </div>
-    <div class="card">
-        <h3>🍄 Super Mario</h3>
-        <button class="btn" onclick="alert('המשחק נטען...')">שחק עכשיו</button>
-    </div>
-
     <script>
         let tg = window.Telegram.WebApp;
-        let userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "12345";
-        
         async function load() {
-            try {
-                const r = await fetch('/api/user/' + userId);
-                const d = await r.json();
-                document.getElementById('bal').innerText = d.slh;
-            } catch(e) { document.getElementById('bal').innerText = "שגיאה"; }
+            const r = await fetch('/api/user/' + tg.initDataUnsafe.user.id);
+            const d = await r.json();
+            document.getElementById('bal').innerText = d.slh;
         }
-
-        async function spin() {
-            tg.HapticFeedback.impactOccurred('heavy');
-            await fetch(/api/game-action?user_id=){userId}&action=spin&amount=50, {method: 'POST'});
-            alert('זכית ב-50 SLH!');
-            load();
+        async function play() {
+            tg.HapticFeedback.impactOccurred('medium');
+            await fetch('/api/game-action?user_id=' + tg.initDataUnsafe.user.id + '&amount=50', {method: 'POST'});
+            alert('זכית!'); load();
         }
-
-        load();
-        tg.expand();
+        load(); tg.expand();
     </script>
 </body>
 </html>

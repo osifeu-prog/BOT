@@ -1,27 +1,32 @@
-﻿import requests
-from fastapi import FastAPI, Request, BackgroundTasks
-from handlers.router import handle_message
+﻿from fastapi import FastAPI, Request
+from utils.config import TELEGRAM_API_URL, PORT
+from handlers.router import handle_message, user_modes
 from handlers.callback_router import handle_callback
-from db.init_db import init_tables
-from db.upgrade import upgrade_tables
-from utils.config import WEBHOOK_URL, TELEGRAM_API_URL
-from utils.logger import logger
+import uvicorn, os
 
 app = FastAPI()
 
-@app.on_event("startup")
-async def startup():
-    init_tables()
-    upgrade_tables()
-    if WEBHOOK_URL:
-        requests.get(f"{TELEGRAM_API_URL}/setWebhook?url={WEBHOOK_URL}/webhook&drop_pending_updates=True")
-        logger.info("🚀 System Online & Upgraded")
-
 @app.post("/webhook")
-async def webhook(request: Request, background_tasks: BackgroundTasks):
-    data = await request.json()
-    if "callback_query" in data:
-        background_tasks.add_task(handle_callback, data["callback_query"])
-    elif "message" in data:
-        background_tasks.add_task(handle_message, data["message"])
-    return {"status": "ok"}
+async def telegram_webhook(request: Request):
+    try:
+        data = await request.json()
+        
+        # טיפול בטקסט רגיל
+        if "message" in data:
+            await handle_message(data["message"])
+            
+        # טיפול בכפתורים (Callbacks)
+        elif "callback_query" in data:
+            await handle_callback(data["callback_query"])
+            
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"Error: {e}")
+        return {"status": "error"}
+
+@app.get("/")
+def read_root():
+    return {"status": "Diamond VIP Bot Online"}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))

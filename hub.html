@@ -12,11 +12,11 @@
         .content { padding: 20px; display: none; }
         .content.active { display: block; }
         .card { background: #111827; border-radius: 20px; padding: 25px; border: 1px solid #1e293b; margin-top: 20px; }
-        input { width: 90%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; }
-        .btn { background: #6366f1; color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; margin-top: 10px; }
+        .balance-text { font-size: 45px; color: #6366f1; font-weight: 800; margin: 10px 0; }
+        .btn { background: #6366f1; color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
-<body>
+<body onload="loadData()">
     <div class="tabs">
         <div class="tab active" onclick="show('wallet', this)">💳 ארנק</div>
         <div class="tab" onclick="show('games', this)">🕹️ ארקייד</div>
@@ -25,48 +25,55 @@
     <div id="wallet" class="content active">
         <div class="card">
             <p>יתרה זמינה</p>
-            <h1 style="font-size: 40px; color: #6366f1;">1,000 SLH</h1>
-            <hr style="border: 0.5px solid #1e293b; margin: 20px 0;">
-            <h3>💸 העברה מהירה</h3>
-            <input type="number" id="rid" placeholder="ID של המקבל">
-            <input type="number" id="amt" placeholder="כמות להעברה">
-            <input type="password" id="pin" placeholder="קוד אבטחה (PIN)">
-            <button class="btn" onclick="doTransfer()">בצע העברה עכשיו</button>
+            <div class="balance-text" id="walletBal">...</div>
+            <button class="btn" onclick="alert('העברות פעילות דרך ה-API')">💸 העברה מהירה</button>
         </div>
     </div>
 
     <div id="games" class="content">
         <div class="card">
             <h2>🕹️ DIAMOND ARCADE</h2>
-            <div style="font-size: 60px; margin: 30px;">💎</div>
-            <button class="btn" onclick="alert('המשחק יתעדכן בסיבוב הבא!')">סובב עכשיו (50 SLH)</button>
+            <div id="slotEmoji" style="font-size: 80px; margin: 20px;">💎</div>
+            <p>עלות: 50 SLH</p>
+            <button class="btn" id="spinBtn" onclick="play()">סובב עכשיו!</button>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
+        const uid = tg.initDataUnsafe.user.id;
+
+        async function loadData() {
+            const res = await fetch('/api/user_data/' + uid);
+            const data = await res.json();
+            document.getElementById('walletBal').innerText = data.balance.toLocaleString() + ' SLH';
+        }
+
+        async function play() {
+            const btn = document.getElementById('spinBtn');
+            btn.disabled = true;
+            const res = await fetch('/api/play_arcade', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_id: uid})
+            });
+            const result = await res.json();
+            if(result.status === 'success') {
+                document.getElementById('slotEmoji').style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    document.getElementById('slotEmoji').style.transform = 'scale(1)';
+                    alert(result.win ? '🏆 זכית ב-150 SLH!' : '😢 אולי בפעם הבאה...');
+                    loadData();
+                    btn.disabled = false;
+                }, 500);
+            } else { alert(result.message); btn.disabled = false; }
+        }
+
         function show(id, el) {
             document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             el.classList.add('active');
-        }
-
-        async function doTransfer() {
-            const data = {
-                sender_id: tg.initDataUnsafe.user.id,
-                receiver_id: document.getElementById('rid').value,
-                amount: document.getElementById('amt').value,
-                password: document.getElementById('pin').value
-            };
-            const res = await fetch('/api/transfer', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            });
-            const result = await res.json();
-            if(result.status === 'success') { alert('✅ ההעברה בוצעה!'); location.reload(); }
-            else { alert('❌ שגיאה: ' + result.message); }
         }
     </script>
 </body>

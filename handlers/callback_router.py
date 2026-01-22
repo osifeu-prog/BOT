@@ -1,33 +1,31 @@
-﻿import requests, random
-from utils.config import TELEGRAM_API_URL, ADMIN_ID, TON_WALLET, PRICE_SH, VIP_LINK
-from db.connection import get_conn
+﻿import requests
+from utils.config import TELEGRAM_API_URL, TON_WALLET, PRICE_SH, TOKEN_PACKS, VIP_GROUP, LESSON_PRICE, ADMIN_USERNAME
 
 async def handle_callback(callback):
     user_id = callback["from"]["id"]
     data = callback["data"]
-    
-    # אישור קבלת לחיצה
     requests.post(f"{TELEGRAM_API_URL}/answerCallbackQuery", json={"callback_query_id": callback["id"]})
 
-    if data == "menu_rank":
-        # משיכת טבלת מובילים מה-Postgres
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT 5")
-        rows = cur.fetchall()
-        cur.close()
-        conn.close()
-        
-        text = "🏆 **מובילי השבוע בנבחרת** 🏆\n\n"
-        for i, row in enumerate(rows):
-            text += f"{i+1}# • ID: {row[0]} — *{row[1]}*\n"
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": text, "parse_mode": "Markdown"})
+    if data == "menu_tokens":
+        msg = f"💎 **חבילות טוקנים זמינות:**\n\n{TOKEN_PACKS}\n\nלבחירת חבילה ורכישה, פנה למנהל: @{ADMIN_USERNAME}"
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg, "parse_mode": "Markdown"})
 
-    elif data == "menu_wheel":
-        # קוביות טלגרם (אנימציית קצה)
-        requests.post(f"{TELEGRAM_API_URL}/sendDice", json={"chat_id": user_id, "emoji": "🎲"})
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "🎯 **הקוביות הוטלו!** אם יצא 6 - תקבל קופון הנחה בפרטי!"})
+    elif data == "menu_courses":
+        from buttons.menus import get_courses_menu
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
+            "chat_id": user_id, 
+            "text": "📚 **בחר את מסלול הלמידה שלך:**",
+            "reply_markup": {"inline_keyboard": get_courses_menu()}
+        })
 
-    elif data == "menu_slots":
-        # אנימציית סלוטס אמיתית של טלגרם
-        requests.post(f"{TELEGRAM_API_URL}/sendDice", json={"chat_id": user_id, "emoji": "🎰"})
+    elif data == "buy_vip":
+        msg = f"💳 **רכישת גישת VIP מלאה**\n\nשלח {PRICE_SH} לכתובת:\n{TON_WALLET}\n\nלאחר מכן שלח צילום מסך כאן."
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg, "parse_mode": "Markdown"})
+
+    elif data == "buy_bot":
+        msg = f"🤖 **רוצה בוט כזה לעסק שלך?**\n\nהמערכת שלנו כוללת:\n• ניהול שותפים\n• סליקת קריפטו\n• משחקי מזל\n\nלפרטים ומחירים פנה אלינו: @{ADMIN_USERNAME}"
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg})
+
+    elif data == "menu_main":
+        from handlers.router import send_start_msg
+        await send_start_msg(user_id)

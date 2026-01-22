@@ -7,66 +7,92 @@
     <style>
         body { background: #020617; color: white; font-family: sans-serif; margin: 0; text-align: center; }
         .tabs { display: flex; background: #1e1b4b; position: sticky; top: 0; z-index: 10; }
-        .tab { flex: 1; padding: 15px; cursor: pointer; opacity: 0.6; }
-        .tab.active { opacity: 1; border-bottom: 3px solid #6366f1; font-weight: bold; }
-        .content { padding: 20px; display: none; }
+        .tab { flex: 1; padding: 15px; cursor: pointer; opacity: 0.6; transition: 0.3s; }
+        .tab.active { opacity: 1; border-bottom: 3px solid #6366f1; font-weight: bold; background: #2e2a5e; }
+        .content { padding: 20px; display: none; animation: fadeIn 0.5s; }
         .content.active { display: block; }
-        .card { background: #111827; border-radius: 20px; padding: 25px; border: 1px solid #1e293b; margin-top: 20px; }
+        .card { background: #111827; border-radius: 20px; padding: 25px; border: 1px solid #1e293b; margin-top: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
         .balance-text { font-size: 45px; color: #6366f1; font-weight: 800; margin: 10px 0; }
-        .btn { background: #6366f1; color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .btn { background: #6366f1; color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn:active { transform: scale(0.98); background: #4f46e5; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
-<body onload="loadData()">
+<body onload="initApp()">
     <div class="tabs">
-        <div class="tab active" onclick="show('wallet', this)">💳 ארנק</div>
-        <div class="tab" onclick="show('games', this)">🕹️ ארקייד</div>
+        <div class="tab active" id="t1" onclick="show('wallet', this)">💳 ארנק</div>
+        <div class="tab" id="t2" onclick="show('games', this)">🕹️ ארקייד</div>
     </div>
 
     <div id="wallet" class="content active">
         <div class="card">
-            <p>יתרה זמינה</p>
-            <div class="balance-text" id="walletBal">...</div>
-            <button class="btn" onclick="alert('העברות פעילות דרך ה-API')">💸 העברה מהירה</button>
+            <p style="color: #94a3b8;">יתרה זמינה למסחר</p>
+            <div class="balance-text" id="walletBal">טוען...</div>
+            <p id="userTag" style="font-size: 12px; color: #475569;"></p>
+            <button class="btn" onclick="alert('העברות זמינות דרך הבוט בשלב זה')">💸 העברה מהירה</button>
         </div>
     </div>
 
     <div id="games" class="content">
         <div class="card">
-            <h2>🕹️ DIAMOND ARCADE</h2>
-            <div id="slotEmoji" style="font-size: 80px; margin: 20px;">💎</div>
-            <p>עלות: 50 SLH</p>
+            <h2 style="margin-top:0;">🕹️ DIAMOND ARCADE</h2>
+            <div id="slotEmoji" style="font-size: 80px; margin: 20px; transition: transform 0.3s;">💎</div>
+            <p style="color: #94a3b8;">עלות סיבוב: 50 SLH</p>
             <button class="btn" id="spinBtn" onclick="play()">סובב עכשיו!</button>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
+        tg.expand();
         const uid = tg.initDataUnsafe.user.id;
 
-        async function loadData() {
-            const res = await fetch('/api/user_data/' + uid);
-            const data = await res.json();
-            document.getElementById('walletBal').innerText = data.balance.toLocaleString() + ' SLH';
+        async function initApp() {
+            document.getElementById('userTag').innerText = "ID: " + uid;
+            await refreshBalance();
+        }
+
+        async function refreshBalance() {
+            try {
+                const res = await fetch('/api/user_data/' + uid);
+                const data = await res.json();
+                document.getElementById('walletBal').innerText = data.balance.toLocaleString() + ' SLH';
+            } catch (e) { console.error("Balance fetch error"); }
         }
 
         async function play() {
             const btn = document.getElementById('spinBtn');
             btn.disabled = true;
-            const res = await fetch('/api/play_arcade', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({user_id: uid})
-            });
-            const result = await res.json();
-            if(result.status === 'success') {
-                document.getElementById('slotEmoji').style.transform = 'scale(1.2)';
-                setTimeout(() => {
-                    document.getElementById('slotEmoji').style.transform = 'scale(1)';
-                    alert(result.win ? '🏆 זכית ב-150 SLH!' : '😢 אולי בפעם הבאה...');
-                    loadData();
+            btn.innerText = "מסתובב...";
+            
+            try {
+                const res = await fetch('/api/play_arcade', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({user_id: uid})
+                });
+                const result = await res.json();
+                
+                if(result.status === 'success') {
+                    const emoji = document.getElementById('slotEmoji');
+                    emoji.style.transform = 'rotate(360deg) scale(1.2)';
+                    setTimeout(() => {
+                        emoji.style.transform = 'rotate(0deg) scale(1)';
+                        if(result.win) {
+                            alert('🏆 מדהים! זכית ב-' + result.prize + ' SLH!');
+                        } else {
+                            alert('😢 לא נורא, נסה שוב!');
+                        }
+                        refreshBalance();
+                        btn.disabled = false;
+                        btn.innerText = "סובב עכשיו!";
+                    }, 600);
+                } else {
+                    alert('❌ ' + result.message);
                     btn.disabled = false;
-                }, 500);
-            } else { alert(result.message); btn.disabled = false; }
+                    btn.innerText = "סובב עכשיו!";
+                }
+            } catch (e) { alert('Server error'); btn.disabled = false; }
         }
 
         function show(id, el) {

@@ -15,6 +15,17 @@ app = FastAPI()
 def get_db():
     return psycopg2.connect(DATABASE_URL)
 
+# פונקציה לתיקון אוטומטי של בסיס הנתונים
+def patch_database():
+    try:
+        conn = get_db(); cur = conn.cursor()
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS rank TEXT DEFAULT 'Starter';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0;")
+        conn.commit(); cur.close(); conn.close()
+        print("✅ Database Schema Verified & Patched")
+    except Exception as e:
+        print(f"❌ DB Patch Error: {e}")
+
 def main_menu():
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add("💳 פורטפוליו & ארנק", "🤖 סוכן AI אסטרטגי", "🕹️ ארקייד Supreme", "🛒 חנות הבוטים", "🎁 הזמן חברים", "📞 תמיכה וקשר")
@@ -26,29 +37,18 @@ async def process_webhook(request: Request):
     bot.process_new_updates([update])
     return "ok"
 
-# --- פקודת שידור (Broadcast) ---
 @bot.message_handler(commands=['broadcast'])
 def broadcast(message):
     if str(message.from_user.id) != str(ADMIN_ID): return
     msg_text = message.text.replace('/broadcast ', '')
-    if not msg_text or msg_text == '/broadcast':
-        bot.reply_to(message, "❌ נא להזין טקסט לשידור. דוגמה: /broadcast שלום לכולם!")
-        return
-    
     conn = get_db(); cur = conn.cursor()
-    cur.execute("SELECT user_id FROM users")
-    users = cur.fetchall()
+    cur.execute("SELECT user_id FROM users"); users = cur.fetchall()
     cur.close(); conn.close()
-    
-    count = 0
     for user in users:
-        try:
-            bot.send_message(user[0], f"📢 **הודעה מהנהלת המערכת:**\n\n{msg_text}")
-            count += 1
+        try: bot.send_message(user[0], f"📢 **הודעה מהנהלת המערכת:**\n\n{msg_text}")
         except: continue
-    bot.reply_to(message, f"✅ השידור נשלח בהצלחה ל-{count} משתמשים.")
+    bot.reply_to(message, "✅ השידור הסתיים.")
 
-# --- פקודת אדמין להוספת טוקנים ---
 @bot.message_handler(commands=['add_cash'])
 def add_cash(message):
     if str(message.from_user.id) != str(ADMIN_ID): return
@@ -58,8 +58,7 @@ def add_cash(message):
         conn = get_db(); cur = conn.cursor()
         cur.execute("UPDATE users SET balance = balance + %s WHERE user_id = %s", (amount, target_id))
         conn.commit(); cur.close(); conn.close()
-        bot.reply_to(message, f"✅ הופקדו {amount} SLH ל-{target_id}.")
-        bot.send_message(target_id, f"🎁 קיבלת {amount} SLH מהאדמין!")
+        bot.reply_to(message, f"✅ הופקדו {amount} SLH.")
     except: bot.reply_to(message, "❌ שימוש: /add_cash [ID] [כמות]")
 
 @bot.message_handler(commands=['start'])
@@ -74,14 +73,14 @@ def handle_text(message):
         cur.execute("SELECT balance, xp, rank FROM users WHERE user_id = %s", (user_id,))
         u = cur.fetchone()
         if not u:
-            cur.execute("INSERT INTO users (user_id) VALUES (%s) RETURNING balance, xp, rank", (user_id,))
+            cur.execute("INSERT INTO users (user_id, balance, xp, rank) VALUES (%s, 0, 0, 'Starter') RETURNING balance, xp, rank", (user_id,))
             u = cur.fetchone(); conn.commit()
         cur.close(); conn.close()
         bot.send_message(chat_id, f"👤 **פרופיל**\n💰 יתרה: {u[0]} SLH\n🏅 דרגה: {u[2]}")
     elif text == "🤖 סוכן AI אסטרטגי": bot.send_message(chat_id, get_market_insight(user_id))
     elif text == "🛒 חנות הבוטים": bot.send_message(chat_id, f"{get_marketplace()}\n\n💎 {TOKEN_PACKS}")
     elif text == "🕹️ ארקייד Supreme":
-        bot.send_message(chat_id, "🎰 בחר הימור קוביה (6):", reply_markup=telebot.types.InlineKeyboardMarkup().add(
+        bot.send_message(chat_id, "🎰 הימור קוביה (6):", reply_markup=telebot.types.InlineKeyboardMarkup().add(
             telebot.types.InlineKeyboardButton("🎲 שחק (50 SLH)", callback_data="play_50")))
     elif text == "🎁 הזמן חברים": bot.send_message(chat_id, f"🔗 https://t.me/{BOT_USERNAME}?start={user_id}")
     elif text == "📞 תמיכה וקשר": bot.send_message(chat_id, get_support_info(), parse_mode="Markdown")
@@ -92,6 +91,7 @@ def callback_play(call):
 
 @app.on_event("startup")
 def on_startup():
+    patch_database() # תיקון בסיס הנתונים ברגע העלייה!
     bot.remove_webhook()
     bot.set_webhook(url=f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}/")
 

@@ -1,114 +1,55 @@
-"""
-slots.py (handler)
-==================
-HE: לוגיקת משחק SLOTS.
-EN: SLOTS game logic.
-"""
-import random
-import logging
-from typing import List, Dict, Any, Tuple
-from db.connection import get_conn
+import asyncio
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+from db.slots import run_slots_logic, get_leaderboard
 from utils.edu_log import edu_step
 
-logger = logging.getLogger(__name__)
-
-# הגדרות סמלים וסיכויים
-SYMBOLS = {
-    "💎": {"weight": 5, "payout": 50},
-    "7️⃣": {"weight": 10, "payout": 25},
-    "🔔": {"weight": 20, "payout": 10},
-    "🍋": {"weight": 30, "payout": 5},
-    "🍒": {"weight": 35, "payout": 2}
-}
-
-def _ensure_table():
-    """יוצר את הטבלה ומעדכן עמודות חסרות (Migration)."""
-    try:
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                # יצירת הטבלה הבסיסית אם לא קיימת
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS slots_history (
-                        id SERIAL PRIMARY KEY,
-                        user_id BIGINT NOT NULL,
-                        result TEXT NOT NULL,
-                        created_at TIMESTAMP DEFAULT NOW()
-                    )
-                """)
-                # תיקון: הוספת עמודות חדשות לטבלה קיימת ב-Railway
-                cur.execute("ALTER TABLE slots_history ADD COLUMN IF NOT EXISTS payout INTEGER DEFAULT 0")
-                cur.execute("ALTER TABLE slots_history ADD COLUMN IF NOT EXISTS is_win BOOLEAN DEFAULT FALSE")
-                conn.commit()
-    except Exception as e:
-        logger.error(f"Database Migration Error: {e}")
-
-def add_slots_result(user_id: int, result: str):
+async def play_slots(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    פונקציית תאימות לאחור (Backward Compatibility).
-    השם נשמר בדיוק כפי שהיה כדי למנוע את ה-ImportError.
+    מבצע את המשחק עם אנימציית Edit Message.
     """
-    edu_step(1, f"Saving slots result for user {user_id}")
-    try:
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO slots_history (user_id, result) VALUES (%s, %s)",
-                    (user_id, result)
-                )
-                conn.commit()
-    except Exception as e:
-        logger.error(f"Error in add_slots_result: {e}")
+    query = update.callback_query
+    if query:
+        await query.answer()
+        user_id = query.from_user.id
+        message = query.message
+    else:
+        user_id = update.effective_user.id
+        message = await update.message.reply_text("🎰 מתחילים לסובב...")
 
-def play_slots_logic(user_id: int) -> Dict[str, Any]:
-    """
-    הלוגיקה המשופרת של המשחק כולל אנימציה.
-    """
-    symbol_list = list(SYMBOLS.keys())
-    weights = [s["weight"] for s in SYMBOLS.values()]
-    
-    # הגרלה
-    res_list = random.choices(symbol_list, weights=weights, k=3)
-    res_str = "".join(res_list)
-    
-    # חישוב זכייה
-    payout = 0
-    if len(set(res_list)) == 1:
-        payout = SYMBOLS[res_list[0]]["payout"]
-    
-    # יצירת פריימים לאנימציה (UX)
-    frames = []
-    for _ in range(3):
-        fake_res = [random.choice(symbol_list) for _ in range(3)]
-        frames.append(f"🎰 ┃ {' ┃ '.join(fake_res)} ┃")
-    frames.append(f"✨ ┃ {' ┃ '.join(res_list)} ┃ ✨")
-    
-    # שמירה ל-DB
-    add_slots_result(user_id, f"{res_str} (Win: {payout})")
-    
-    return {
-        "frames": frames,
-        "payout": payout,
-        "won": payout > 0,
-        "final_res": res_str
-    }
+    edu_step(1, f"User {user_id} spinning slots")
 
-def get_leaderboard(limit: int = 10):
-    """מחזיר את טבלת המובילים - תואם למבנה המקורי."""
-    edu_step(1, "Fetching leaderboard.")
-    try:
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT user_id, COUNT(*) as plays
-                    FROM slots_history
-                    GROUP BY user_id
-                    ORDER BY plays DESC
-                    LIMIT %s
-                """, (limit,))
-                return cur.fetchall()
-    except Exception as e:
-        logger.error(f"Leaderboard error: {e}")
-        return []
+    # הרצת לוגיקה
+    game = run_slots_logic(user_id)
+    
+    # --- שלב האנימציה ---
+    for frame in game["frames"][:-1]:
+        await message.edit_text(f"🎰 **סלוטס קזינו** 🎰\n\n{frame}\n\nמהמרים...")
+        await asyncio.sleep(0.4) # מהירות הסיבוב
 
-# הרצה אוטומטית של עדכון הטבלה
-_ensure_table()
+    # --- תוצאה סופית ---
+    result_text = f"🎰 **סלוטס קזינו** 🎰\n\n{game['frames'][-1]}\n\n"
+    
+    if game["won"]:
+        result_text += f"🎉 **וואו! זכית ב-{game['payout']} נקודות!** 🎉"
+    else:
+        result_text += "🍀 הפעם לא זכית... נסה שוב!"
+
+    keyboard = [[InlineKeyboardButton("🎰 סיבוב נוסף!", callback_data="play_slots")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await message.edit_text(result_text, reply_markup=reply_markup, parse_mode="Markdown")
+
+async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """מציג את טבלת המובילים."""
+    edu_step(1, "Showing slots leaderboard")
+    rows = get_leaderboard(5)
+    
+    text = "🏆 **מובילי הקזינו (לפי רווחים)** 🏆\n\n"
+    for i, row in enumerate(rows, 1):
+        text += f"{i}. משתמש {row[0]}: {row[2]} נקודות ({row[1]} משחקים)\n"
+    
+    if update.callback_query:
+        await update.callback_query.message.edit_text(text, parse_mode="Markdown")
+    else:
+        await update.message.reply_text(text, parse_mode="Markdown")

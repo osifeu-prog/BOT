@@ -4,32 +4,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background: #0f172a; color: white; font-family: system-ui; text-align: center; padding: 20px; }
+        body { background: #020617; color: white; font-family: 'Segoe UI', sans-serif; padding: 15px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .card { 
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            border-radius: 20px; padding: 25px; margin: 20px 0;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            border: 1px solid #475569;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 24px; padding: 25px; 
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative; overflow: hidden;
         }
-        .balance { font-size: 32px; font-weight: bold; color: #38bdf8; margin: 10px 0; }
-        .btn { 
-            background: #38bdf8; color: #0f172a; border: none; padding: 12px 25px; 
-            border-radius: 12px; font-weight: bold; width: 100%; margin: 10px 0;
+        .card::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(56,189,248,0.1) 0%, transparent 70%);
+        }
+        .balance-label { color: #94a3b8; font-size: 14px; }
+        .balance-value { font-size: 38px; font-weight: 800; color: #f8fafc; margin: 5px 0; }
+        .stats { display: flex; gap: 10px; margin-top: 20px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; flex: 1; font-size: 12px; }
+        .chart-container { margin-top: 25px; height: 150px; }
+        .btn-send { 
+            background: #38bdf8; color: #020617; border: none; padding: 15px; 
+            border-radius: 16px; font-weight: bold; width: 100%; margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(56,189,248,0.4);
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <p>יתרה נוכחית</p>
-        <div class="balance"> 1,250.00</div>
-        <p>Diamond Holder Rank: Gold 🏆</p>
+    <div class="header">
+        <span>שלום, Diamond Holder 👋</span>
+        <span style="color: #38bdf8;">Lv. 7</span>
     </div>
-    <button class="btn" onclick="Telegram.WebApp.close()">חזרה לבוט</button>
+
+    <div class="card">
+        <div class="balance-label">שווי תיק כולל</div>
+        <div class="balance-value">1,452.80 SLH</div>
+        <div style="color: #22c55e; font-size: 14px;">▲ 12.5% מהשבוע האחרון</div>
+        
+        <div class="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">🪙 בונוסים<br><b>+250</b></div>
+            <div class="stat-box">🎮 משחקים<br><b>+120</b></div>
+            <div class="stat-box">👥 חברים<br><b>+500</b></div>
+        </div>
+    </div>
+
+    <button class="btn-send" onclick="Telegram.WebApp.showAlert('העברות גרפיות יפתחו בגרסה הבאה!')">💸 העברה מהירה לחבר</button>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        // כאן בהמשך נמשוך נתונים אמיתיים מה-API
+        tg.setHeaderColor('#020617');
+
+        // יצירת גרף ביצועים דמיוני
+        const ctx = document.getElementById('myChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'],
+                datasets: [{
+                    data: [1000, 1100, 1050, 1300, 1250, 1400, 1452],
+                    borderColor: '#38bdf8',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    fill: true,
+                    backgroundColor: 'rgba(56,189,248,0.1)'
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: { x: { display: false }, y: { display: false } }
+            }
+        });
     </script>
 </body>
 </html>

@@ -40,7 +40,7 @@ def handle_text(message):
     if text == "💳 פורטפוליו & ארנק":
         conn = get_db(); cur = conn.cursor()
         cur.execute("SELECT balance, xp, rank FROM users WHERE user_id = %s", (user_id,))
-        u = cur.fetchone()
+        u = cur.fetchone(); if not u: cur.execute('INSERT INTO users (user_id) VALUES (%s) RETURNING balance, xp, rank', (user_id,)); u = cur.fetchone()
         cur.close(); conn.close()
         bot.send_message(chat_id, f"👤 **פרופיל משקיע**\n💰 יתרה: {u[0] if u else 0} SLH\n🏅 דרגה: {u[2] if u else 'Starter'}")
 

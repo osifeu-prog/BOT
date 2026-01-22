@@ -4,12 +4,12 @@ DB_PATH = "database.db"
 def get_user_stats(user_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id, balance FROM users WHERE user_id = ?", (str(user_id),))
+    cursor.execute("SELECT user_id, balance, referred_by FROM users WHERE user_id = ?", (str(user_id),))
     user = cursor.fetchone()
     if not user:
-        cursor.execute("INSERT INTO users (user_id, balance) VALUES (?, ?)", (str(user_id), 0))
+        cursor.execute("INSERT INTO users (user_id, balance) VALUES (?, 0)", (str(user_id),))
         conn.commit()
-        user = (str(user_id), 0)
+        user = (str(user_id), 0, None)
     conn.close()
     return user
 
@@ -24,6 +24,6 @@ def get_total_stats():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*), SUM(balance) FROM users")
-    stats = cursor.fetchone()
+    res = cursor.fetchone()
     conn.close()
-    return stats
+    return res

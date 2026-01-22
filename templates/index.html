@@ -1,75 +1,57 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Diamond VIP Arcade</title>
+    <title>Diamond Elite Arcade</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        :root { --gold: #fcf6ba; --dark: #0f0f12; }
-        body { background: var(--dark); color: #fff; font-family: system-ui; margin: 0; padding-bottom: 80px; }
-        .header { background: linear-gradient(to bottom, #1a1a20, var(--dark)); padding: 25px; border-bottom: 1px solid #333; }
-        .balance-card { background: linear-gradient(45deg, #bf953f, #fcf6ba); color: #000; border-radius: 20px; padding: 20px; margin: -40px 20px 20px; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
-        .game-card { background: #1c1c22; border-radius: 15px; padding: 15px; border: 1px solid #333; transition: 0.3s; }
-        .game-card:active { transform: scale(0.95); border-color: #bf953f; }
-        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #16161a; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #333; }
+        :root { --gold: #fcf6ba; --dark: #0a0a0c; }
+        body { background: var(--dark); color: #fff; font-family: -apple-system, blinkmacsystemfont, 'Segoe UI'; margin: 0; overflow: hidden; }
+        .balance-box { background: linear-gradient(135deg, #16161a 0%, #25252b 100%); border: 1px solid #bf953f; padding: 20px; border-radius: 20px; margin: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .game-area { width: 90%; height: 300px; background: #1a1a20; border-radius: 20px; margin: 0 auto; position: relative; overflow: hidden; border: 2px solid #333; }
+        .btn-play { background: linear-gradient(45deg, #bf953f, #fcf6ba); color: #000; padding: 15px 40px; border-radius: 50px; font-weight: 900; border: none; font-size: 18px; margin-top: 20px; box-shadow: 0 5px 15px rgba(191,149,63,0.4); }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1 style="color: var(--gold); margin: 0;">DIAMOND ARCADE</h1>
-        <p style="opacity: 0.7;">מערכת המשחקים היוקרתית</p>
+    <div class="balance-box">
+        <div style="opacity: 0.6; font-size: 12px; letter-spacing: 1px;">MY DIAMOND BALANCE</div>
+        <div id="balance" style="font-size: 36px; font-weight: 900; color: var(--gold);">---</div>
     </div>
-    <div class="balance-card">
-        <div style="font-size: 14px; opacity: 0.8;">היתרה שלך (SLH)</div>
-        <div id="balance" style="font-size: 32px;">0</div>
-    </div>
-
-    <div class="game-grid">
-        <div class="game-card" onclick="playGame('mario')">
-            <div style="font-size: 40px;">🍄</div>
-            <h3>Super Mario</h3>
-            <p style="font-size: 12px; opacity: 0.6;">משחק הרפתקאות נוסטלגי</p>
-        </div>
-        <div class="game-card" onclick="playGame('roulette')">
-            <div style="font-size: 40px;">🎰</div>
-            <h3>Daily Spin</h3>
-            <p style="font-size: 12px; opacity: 0.6;">בונוס יומי בחינם</p>
-        </div>
+    
+    <div class="game-area" id="gameArea">
+        <div id="mario" style="width:40px; height:40px; background:red; position:absolute; bottom:0; left:50px; border-radius:5px;"></div>
+        <div style="position:absolute; top:40%; width:100%; text-align:center; opacity:0.2; font-size:40px; font-weight:900;">ARCADE</div>
     </div>
 
-    <div class="nav-bar">
-        <span onclick="location.reload()">🏠 בית</span>
-        <span onclick="Swal.fire('חנות', 'בקרוב תוכל לרכוש כאן שדרוגים', 'info')">🛒 חנות</span>
-        <span onclick="tg.close()">❌ יציאה</span>
-    </div>
+    <button class="btn-play" onclick="playDice()" id="actionBtn">הטל קוביית מזל 🎲</button>
 
     <script>
         let tg = window.Telegram.WebApp;
         let userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "12345";
-        
-        async function fetchStats() {
+
+        async function load() {
             const r = await fetch('/api/user/' + userId);
             const d = await r.json();
-            document.getElementById('balance').innerText = d.slh.toLocaleString();
+            document.getElementById('balance').innerText = d.slh.toLocaleString() + " SLH";
         }
 
-        async function playGame(type) {
-            tg.HapticFeedback.impactOccurred('medium');
-            if(type === 'roulette') {
-                Swal.fire({ title: 'מסתובב...', timer: 1000, didOpen: () => Swal.showLoading() }).then(async () => {
-                    await fetch(/api/game-action?user_id=){userId}&action=daily&amount=50, {method:'POST'});
-                    Swal.fire('זכית!', '50 SLH נוספו לחשבונך', 'success');
-                    fetchStats();
-                });
-            } else {
-                Swal.fire('Super Mario', 'המנוע הגרפי נטען... הכן את האצבעות לקפיצה!', 'info');
-            }
+        async function playDice() {
+            tg.HapticFeedback.impactOccurred('heavy');
+            document.getElementById('actionBtn').disabled = true;
+            
+            // אפקט קונפטי במידה וזוכים
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#bf953f', '#fcf6ba'] });
+            
+            await fetch(/api/game-action?user_id=){userId}&action=dice&amount=10, {method: 'POST'});
+            setTimeout(() => {
+                load();
+                document.getElementById('actionBtn').disabled = false;
+            }, 1000);
         }
 
-        fetchStats();
+        load();
         tg.expand();
     </script>
 </body>

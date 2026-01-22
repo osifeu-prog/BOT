@@ -16,10 +16,10 @@ async def handle_message(message):
         if text == "/start":
             update_user_economy(user_id_str, slh_add=0)
             
-            # מקלדת בפורמט רשימה פשוטה
             keyboard = [
-                [{"text": "🎮 משחקים", "callback_data": "games"}, {"text": "💰 ארנק", "callback_data": "wallet"}],
-                [{"text": "🏆 מובילים", "callback_data": "leaderboard"}, {"text": "⚙️ הגדרות", "callback_data": "settings"}]
+                [{"text": "🎮 פתח משחקים (Mini-App)", "web_app": {"url": "https://bot-production-2668.up.railway.app/"}}],
+                [{"text": "💰 ארנק", "callback_data": "wallet"}, {"text": "🏆 מובילים", "callback_data": "leaderboard"}],
+                [{"text": "🤖 שאל את AI", "callback_data": "ai_chat"}, {"text": "⚙️ הגדרות", "callback_data": "settings"}]
             ]
             
             if user_id_str == str(ADMIN_ID):
@@ -27,12 +27,10 @@ async def handle_message(message):
 
             payload = {
                 "chat_id": user_id,
-                "text": "💎 **Diamond VIP Arcade**\nהמערכת סונכרנה.\nהשתמש בכפתורים למטה:",
+                "text": "💎 **Diamond VIP Arcade**\nברוך הבא למערכת המלאה.\nכל התכונות והתוספות הופעלו.",
                 "reply_markup": {"inline_keyboard": keyboard}
             }
-            
-            resp = requests.post(f"{TELEGRAM_API_URL}/sendMessage", json=payload)
-            print(f"📤 Telegram Send Status: {resp.status_code} - {resp.text}")
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json=payload)
             
     except Exception as e:
         print(f"❌ Router Error: {e}")

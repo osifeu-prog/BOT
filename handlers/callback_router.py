@@ -1,29 +1,23 @@
 ﻿import requests
-from utils.config import TELEGRAM_API_URL, BOT_USERNAME
+from utils.config import TELEGRAM_API_URL
+from buttons.menus import get_games_menu
 
-async def handle_callback(callback):
-    user_id = callback["from"]["id"]
-    data = callback["data"]
-    # אישור קבלת הלחיצה
-    requests.post(f"{TELEGRAM_API_URL}/answerCallbackQuery", json={"callback_query_id": callback["id"]})
+async def handle_callback(callback_query):
+    user_id = str(callback_query["from"]["id"])
+    data = callback_query.get("data", "")
+    chat_id = callback_query["message"]["chat"]["id"]
+    message_id = callback_query["message"]["message_id"]
 
-    if data == "menu_main":
-        from handlers.router import handle_message
-        await handle_message({"from": {"id": user_id}, "text": "/start"})
-
-    elif data == "menu_games":
-        from buttons.menus import get_games_menu
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-            "chat_id": user_id, "text": "🎰 **קזינו ה-VIP זמין!**\nבחר משחק והרווח SLH:",
-            "reply_markup": {"inline_keyboard": get_games_menu()}
+    if data == "open_games":
+        requests.post(f"{TELEGRAM_API_URL}/editMessageText", json={
+            "chat_id": chat_id, "message_id": message_id,
+            "text": "🎮 **מרכז המשחקים**\nבחר משחק וצבור SLH:",
+            "reply_markup": {"inline_keyboard": get_games_menu('he')}
         })
-
-    elif data.startswith("game_"):
-        emoji_map = {"game_slots": "🎰", "game_dice": "🎲", "game_dart": "🎯", "game_hoop": "🏀", "game_bowling": "🎳"}
-        emoji = emoji_map.get(data, "🎲")
-        requests.post(f"{TELEGRAM_API_URL}/sendDice", json={"chat_id": user_id, "emoji": emoji})
-
-    elif data == "menu_affiliate":
-        ref_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
-        msg = f"🤝 **תוכנית השותפים:**\nשלח את הלינק לחברים וקבל 100 SLH על כל מצטרף!\n\n{ref_link}"
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg, "parse_mode": "Markdown"})
+    
+    elif data == "open_courses":
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
+            "chat_id": chat_id, "text": "📚 **האקדמיה ל-VIP**\nהקורסים שלך בדרך..."
+        })
+    
+    requests.post(f"{TELEGRAM_API_URL}/answerCallbackQuery", json={"callback_query_id": callback_query["id"]})

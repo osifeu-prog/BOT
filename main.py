@@ -12,50 +12,49 @@ app = FastAPI()
 
 def get_db(): return psycopg2.connect(DATABASE_URL)
 
+# --- דפי ה-Mini App ---
 @app.get("/wallet_page", response_class=HTMLResponse)
 async def get_wallet():
-    try:
-        with open("wallet.html", "r", encoding="utf-8") as f:
-            return f.read()
-    except:
-        return "<html><body style='background:#020617;color:white;text-align:center;'><h1>Wallet Loading...</h1></body></html>"
+    with open("wallet.html", "r", encoding="utf-8") as f:
+        return f.read()
 
+@app.get("/games_page", response_class=HTMLResponse)
+async def get_games():
+    with open("games.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+# --- תפריט ראשי ---
 def main_menu(uid):
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    # בניית ה-URL מהדומיין של Railway
-    base_domain = WEBHOOK_URL.split('/8106')[0] 
-    wallet_url = f"{base_domain}/wallet_page"
+    base_url = WEBHOOK_URL.split('/8106')[0] # חילוץ הדומיין מתוך ה-Webhook
     
-    markup.add(KeyboardButton("💎 ארנק SUPREME", web_app=WebAppInfo(url=wallet_url)))
-    markup.add("📊 פורטפוליו", "🏆 טבלת אלופים")
-    markup.add("👥 הזמן חברים", "🕹️ ארקייד", "📋 מצב מערכת")
+    markup.add(
+        KeyboardButton("💳 ארנק SUPREME", web_app=WebAppInfo(url=f"{base_url}/wallet_page")),
+        KeyboardButton("🕹️ ארקייד גרפי", web_app=WebAppInfo(url=f"{base_url}/games_page"))
+    )
+    markup.add("📊 פורטפוליו", "🏆 טבלת אלופים", "👥 הזמן חברים", "📋 מצב מערכת")
     return markup
 
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.from_user.id)
-    conn = get_db(); cur = conn.cursor()
-    cur.execute("INSERT INTO users (user_id, balance) VALUES (%s, 1000) ON CONFLICT DO NOTHING", (uid,))
-    conn.commit(); cur.close(); conn.close()
-    bot.send_message(message.chat.id, "<b>💎 DIAMOND SUPREME</b>\nהמערכת מוכנה.", reply_markup=main_menu(uid), parse_mode="HTML")
+    bot.send_message(message.chat.id, "<b>💎 DIAMOND SUPREME SYSTEM</b>\nהמערכת פעילה. בחר פעולה:", reply_markup=main_menu(uid), parse_mode="HTML")
 
 @bot.message_handler(func=lambda m: m.text == "🏆 טבלת אלופים")
-def show_leaderboard(message):
+def leaderboard(message):
     conn = get_db(); cur = conn.cursor()
     cur.execute("SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT 10")
     top = cur.fetchall()
     cur.close(); conn.close()
-    msg = "🏆 <b>היכל התהילה</b>\n\n"
+    msg = "🏆 <b>TOP 10 LEADERS</b>\n\n"
     for i, u in enumerate(top):
         msg += f"{i+1}. <code>{str(u[0])[:5]}***</code> — {u[1]:,} SLH\n"
     bot.send_message(message.chat.id, msg, parse_mode="HTML")
 
 @bot.message_handler(func=lambda m: m.text == "👥 הזמן חברים")
-def send_ref_link(message):
-    uid = message.from_user.id
-    ref_link = f"https://t.me/{bot.get_me().username}?start={uid}"
-    msg = f"🚀 <b>לינק הזמנה אישי:</b>\n<code>{ref_link}</code>"
-    bot.reply_to(message, msg, parse_mode="HTML")
+def invite(message):
+    ref_link = f"https://t.me/{bot.get_me().username}?start={message.from_user.id}"
+    bot.reply_to(message, f"🚀 <b>לינק הזמנה:</b>\n<code>{ref_link}</code>", parse_mode="HTML")
 
 @app.post(f"/{TELEGRAM_TOKEN}/")
 async def process_webhook(request: Request):

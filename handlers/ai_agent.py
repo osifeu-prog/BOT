@@ -1,14 +1,18 @@
-import psycopg2, os
-from utils.config import DATABASE_URL, BASE_URL, SUPPORT_PHONE
+import psycopg2
+from utils.config import DATABASE_URL
 
 def get_market_insight(user_id):
-    conn = psycopg2.connect(DATABASE_URL); cur = conn.cursor()
-    cur.execute("SELECT entry FROM journal WHERE user_id = %s ORDER BY created_at DESC LIMIT 5", (user_id,))
-    logs = cur.fetchall()
-    cur.close(); conn.close()
-    
-    if not logs:
-        return f"👋 ברוך הבא! אין לי עדיין נתונים עליך. בקר ב-{BASE_URL} או רשום כאן פעולות שוק."
-    
-    summary = " ".join([l[0] for l in logs])
-    return f"🤖 **ניתוח סוכן חכם:**\nמזהה פעילות סביב: {summary[:50]}...\nהמלצה: בדוק את התיק שלך באתר הבית."
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        cur.execute("SELECT entry FROM journal WHERE user_id = %s ORDER BY created_at DESC LIMIT 5", (user_id,))
+        entries = cur.fetchall()
+        cur.close(); conn.close()
+        
+        if not entries:
+            return "🤖 **ניתוח סוכן:**\nאין לי מספיק נתונים ביומן שלך עדיין. המשך לסחור ולתעד!"
+        
+        last_action = entries[0][0]
+        return f"🤖 **ניתוח סוכן חכם:**\nמזהה פעילות אחרונה: '{last_action}'.\nהמלצה: המשך לעקוב אחר המגמה באתר הבית."
+    except:
+        return "🤖 הסוכן כרגע בלמידה, נסה שוב מאוחר יותר."

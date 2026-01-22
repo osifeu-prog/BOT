@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { background: #020617; color: white; font-family: system-ui; text-align: center; padding: 20px; }
+        .card { background: #1e1b4b; border-radius: 20px; padding: 25px; border: 1px solid #4338ca; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .wheel { width: 150px; height: 150px; border-radius: 50%; border: 5px solid #6366f1; margin: 20px auto; display: flex; align-items: center; justify-content: center; font-size: 40px; transition: transform 2s cubic-bezier(0.1, 0, 0.1, 1); }
+        .btn { background: #6366f1; color: white; border: none; padding: 12px 30px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🕹️ DIAMOND ARCADE</h2>
+        <div class="wheel" id="wheel">💎</div>
+        <p id="status">לחץ כדי לסובב (50 SLH)</p>
+        <button class="btn" onclick="spin()">סובב עכשיו!</button>
+    </div>
+    <script>
+        const tg = window.Telegram.WebApp;
+        function spin() {
+            const wheel = document.getElementById('wheel');
+            const status = document.getElementById('status');
+            const deg = Math.floor(Math.random() * 3600) + 720;
+            wheel.style.transform = "rotate(" + deg + "deg)";
+            status.innerText = "מסתובב...";
+            setTimeout(() => {
+                status.innerText = "זכית ב-100 SLH! (בדיקה)";
+                tg.HapticFeedback.notificationOccurred('success');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

@@ -11,50 +11,51 @@ async def handle_message(message):
     text = message.get("text", "")
     now = time.time()
 
-    if user_id in user_cooldowns and now - user_cooldowns[user_id] < 0.8: return
+    if user_id in user_cooldowns and now - user_cooldowns[user_id] < 0.5: return
     user_cooldowns[user_id] = now
 
-    if text == "/admin":
-        if user_id == str(ADMIN_ID):
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "🛠 פאנל ניהול אדמין פעיל."})
-        return
-
-    if text == "/start" or text == "🔙 חזרה":
+    # פקודות בסיס
+    if text == "/start" or text == "🔙 חזרה לתפריט":
         user_modes[user_id] = None
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-            "chat_id": user_id, "text": "💎 **Diamond VIP Arcade**\nברוך הבא למערכת המשופרת!",
+            "chat_id": user_id, "text": "💎 **Diamond VIP Arcade**\nברוך הבא לסטנדרט החדש של שוק ההון.",
             "reply_markup": {"keyboard": get_reply_keyboard()["keyboard"], "resize_keyboard": True}
         })
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-            "chat_id": user_id, "text": "בחר פעולה:",
+            "chat_id": user_id, "text": "בחר את הפעולה המבוקשת:",
             "reply_markup": {"inline_keyboard": get_main_menu('he', user_id)}
         })
         return
 
     if text == "💰 הארנק שלי":
         xp, slh, bal, _ = get_user_stats(user_id)
-        rank = "🥉 Bronze Member" if xp < 500 else "🥈 Silver VIP" if xp < 2000 else "💎 Diamond Whale"
-        pay_link = f"https://t.me/{BOT_USERNAME}?start=pay_{user_id}"
-        msg = (f"👤 **כרטיס שחקן VIP**\n━━━━━━━━━━━━\n"
-               f"🏅 **דרגה:** {rank}\n"
-               f"✨ **ניסיון:** {xp}\n━━━━━━━━━━━━\n"
+        rank = "🥉 Bronze" if xp < 500 else "🥈 Silver VIP" if xp < 2000 else "💎 Diamond Whale"
+        msg = (f"👤 **כרטיס חבר VIP**\n━━━━━━━━━━━━\n"
+               f"🏅 **סטטוס:** {rank}\n"
+               f"✨ **XP:** {xp}\n━━━━━━━━━━━━\n"
                f"🪙 **SLH:** {slh}\n"
-               f"💰 **יתרה:** {bal}\n\n"
-               f"🔗 **לינק אישי:**\n{pay_link}")
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg, "parse_mode": "Markdown"})
+               f"💰 **יתרה בארנק:** {bal}\n\n"
+               f"🔗 **לינק אישי להעברות:**\nhttps://t.me/{BOT_USERNAME}?start=pay_{user_id}")
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg, "parse_mode": "Markdown", "reply_markup": {"inline_keyboard": [[{"text": "📊 היסטוריית פעולות", "callback_data": "history"}]]}})
         return
 
-    # הפעלת AI דרך טקסט או כפתור
-    if "AI" in text or text == "🤖 שאל את ה-AI":
+    if text == "🤖 שאל את ה-AI":
         user_modes[user_id] = "ai"
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "🤖 מצב AI פעיל. אני מקשיב..."})
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
+            "chat_id": user_id, "text": "🤖 **מצב אנליסט VIP פעיל**\nאני זמין לשאלות על שוק הון, קריפטו או שימוש בבוט.\nלחץ על הכפתור למטה כדי לחזור.",
+            "reply_markup": {"keyboard": [[{"text": "🔙 חזרה לתפריט"}]], "resize_keyboard": True}
+        })
         return
 
-    # לוגיקת AI
+    # לוגיקת AI מתקדמת
     if user_modes.get(user_id) == "ai" and not text.startswith("/"):
         requests.post(f"{TELEGRAM_API_URL}/sendChatAction", json={"chat_id": user_id, "action": "typing"})
-        payload = {"model": "gpt-4o-mini", "messages": [{"role": "system", "content": "אתה מנהל VIP. תמליץ על משחקים, קורסים וצבירת SLH."}, {"role": "user", "content": text}]}
+        system_msg = "אתה אנליסט בכיר במועדון Diamond VIP. תפקידך לתת עצות פיננסיות (עם דיסקליימר) ולעודד שימוש בבוט: משחקים, צבירת SLH וקורסים."
+        payload = {"model": "gpt-4o-mini", "messages": [{"role": "system", "content": system_msg}, {"role": "user", "content": text}]}
         r = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers={"Authorization": f"Bearer {OPENAI_KEY}"}).json()
-        reply = r['choices'][0]['message']['content'] if 'choices' in r else "⚠️ ה-AI נח כרגע."
+        reply = r['choices'][0]['message']['content'] if 'choices' in r else "⚠️ האנליסט עסוק, נסה שוב."
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": reply})
         return
+
+    if text == "/admin" and user_id == str(ADMIN_ID):
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "🕶 **Welcome Master.**\nכל המערכות פועלות כשורה."})

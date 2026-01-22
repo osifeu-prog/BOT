@@ -1,33 +1,36 @@
 ﻿import requests
 from utils.config import TELEGRAM_API_URL, ADMIN_ID
-from buttons.menus import get_main_menu
-from db.users import update_user_economy
+from db.users import update_user_economy, get_user_stats
 
 async def handle_message(message):
     try:
         user_id = str(message.get("from", {}).get("id"))
         text = message.get("text", "")
         
-        print(f"📩 Received: {text} from {user_id}")
-
         if text == "/master_mine" and user_id == str(ADMIN_ID):
             update_user_economy(user_id, slh_add=1000000)
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "💰 כרית 1,000,000 SLH בהצלחה!"})
-            return
-
-        if text == "/admin" and user_id == str(ADMIN_ID):
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-                "chat_id": user_id, 
-                "text": "🕶 **ADMIN TERMINAL**\nהמערכת מאובטחת. עמודות ה-DB סונכרנו.\nכל המערכות ירוקות. 🚀"
-            })
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "💰 **ADMIN:** כרית 1,000,000 SLH!"})
             return
 
         if text == "/start":
-            update_user_economy(user_id, slh_add=0) # זה יצור את המשתמש אם לא קיים
+            update_user_economy(user_id, slh_add=0)
+            
+            # בניית כפתורים ישירות כאן כדי לוודא שהם מופיעים
+            keyboard = {
+                "inline_keyboard": [
+                    [{"text": "🎮 משחקים", "callback_data": "games"}, {"text": "💰 ארנק", "callback_data": "wallet"}],
+                    [{"text": "🏆 מובילים", "callback_data": "leaderboard"}, {"text": "⚙️ הגדרות", "callback_data": "settings"}]
+                ]
+            }
+            
+            # הוספת כפתור ניהול רק עבורך
+            if user_id == str(ADMIN_ID):
+                keyboard["inline_keyboard"].append([{"text": "🛡 פאנל ניהול", "callback_data": "admin_panel"}])
+
             requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
                 "chat_id": user_id, 
-                "text": "💎 **Diamond VIP Arcade**\nברוך הבא! הכל עובד עכשיו.",
-                "reply_markup": {"inline_keyboard": get_main_menu('he', user_id)}
+                "text": "💎 **Diamond VIP Arcade**\nברוך הבא! כל המערכות מאובטחות.\nהשתמש בתפריט למטה:",
+                "reply_markup": keyboard
             })
             
     except Exception as e:

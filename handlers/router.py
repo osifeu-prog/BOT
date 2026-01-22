@@ -1,6 +1,5 @@
 import requests
 from utils.config import TELEGRAM_API_URL, ADMIN_ID
-from db.users import get_total_stats, get_user_stats
 
 def handle_message(message):
     chat_id = message.get("chat", {}).get("id")
@@ -8,27 +7,28 @@ def handle_message(message):
     text = message.get("text", "")
 
     if text.startswith("/start"):
-        msg = "👑 **DIAMOND ELITE SYSTEM v6.0**\n\nברוך הבא למוצר המלא. המערכת כוללת ארקייד, AI וניהול נכסים."
+        ref_id = text.split(" ")[1] if len(text.split(" ")) > 1 else None
+        msg = (f"💎 **DIAMOND ELITE v7.0**\n\n"
+               f"הלינק האישי שלך:\n	.me/YourBotName?start={user_id}\n\n"
+               "בחר פעולה מהתפריט המקצועי:")
         kb = { "inline_keyboard": [
-            [{"text": "🎮 כניסה לארקייד Pro", "web_app": {"url": "https://bot-production-2668.up.railway.app/"}}],
+            [{"text": "🎮 פתח ארקייד Pro", "web_app": {"url": "https://bot-production-2668.up.railway.app/"}}],
             [{"text": "🤖 AI אנליסט", "callback_data": "ai_chat"}, {"text": "🏆 מובילים", "callback_data": "leaderboard"}],
-            [{"text": "👤 פרופיל & שותפים", "callback_data": "user_profile"}]
+            [{"text": "👥 מערכת שותפים", "callback_data": "ref_system"}, {"text": "👤 פרופיל", "callback_data": "profile"}],
+            [{"text": "📊 דאשבורד מנהל", "callback_data": "admin_report"}] if str(user_id) == str(ADMIN_ID) else []
         ]}
-        if str(user_id) == str(ADMIN_ID):
-            kb["inline_keyboard"].append([{"text": "📊 דאשבורד ניהול", "callback_data": "admin_report"}])
-            
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg, "reply_markup": kb, "parse_mode": "Markdown"})
 
 def handle_callback(callback_query):
     chat_id = callback_query.get("message", {}).get("chat", {}).get("id")
     user_id = callback_query.get("from", {}).get("id")
     data = callback_query.get("data", "")
-    
     requests.post(f"{TELEGRAM_API_URL}/answerCallbackQuery", json={"callback_query_id": callback_query['id']})
 
-    if data == "admin_report" and str(user_id) == str(ADMIN_ID):
+    if data == "admin_report":
+        from db.users import get_total_stats
         s = get_total_stats()
-        report = f"📊 **דוח מערכת מלא:**\n\n👤 משתמשים: {s[0]}\n💰 מחזור: {s[1]}\n⚙️ AI: Active\n🌐 WebApp: Online"
+        report = f"📊 **דוח מערכת:**\n👤 משתמשים: {s[0]}\n💰 מחזור: {s[1]}\n🌐 סטטוס: Active"
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": report})
     elif data == "ai_chat":
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "🤖 שלח לי שם של מטבע או שאלה על השוק:"})
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "🤖 אני מקשיב. שאל אותי על ביטקוין, איתריום או סנטימנט השוק:"})

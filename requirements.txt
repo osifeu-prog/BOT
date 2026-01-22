@@ -2,5 +2,4 @@ pyTelegramBotAPI
 fastapi
 uvicorn
 psycopg2-binary
-schedule
 python-dotenv

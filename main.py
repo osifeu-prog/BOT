@@ -11,9 +11,10 @@ app = FastAPI()
 async def startup_event():
     initialize_db()
     webhook_url = "https://bot-production-2668.up.railway.app/webhook"
-    # הוספת drop_pending_updates=True מנקה את התור של טלגרם
-    requests.get(f"{TELEGRAM_API_URL}/setWebhook?url={webhook_url}&drop_pending_updates=True")
-    print("🚀 System Online - Updates Cleared - Webhook Set")
+    # מחיקה אקטיבית של הודעות ישנות
+    requests.get(f"{TELEGRAM_API_URL}/deleteWebhook?drop_pending_updates=True")
+    requests.get(f"{TELEGRAM_API_URL}/setWebhook?url={webhook_url}")
+    print("🚀 System Cleaned & Online")
 
 @app.post("/webhook")
 async def telegram_webhook(request: Request):

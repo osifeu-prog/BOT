@@ -5,13 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #020617; color: white; font-family: sans-serif; margin: 0; padding: 0; }
-        .tabs { display: flex; background: #1e1b4b; position: sticky; top: 0; }
-        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; border-bottom: 2px solid transparent; }
-        .tab.active { border-bottom: 2px solid #6366f1; color: #6366f1; font-weight: bold; }
+        body { background: #020617; color: white; font-family: sans-serif; margin: 0; text-align: center; }
+        .tabs { display: flex; background: #1e1b4b; position: sticky; top: 0; z-index: 10; }
+        .tab { flex: 1; padding: 15px; cursor: pointer; opacity: 0.6; }
+        .tab.active { opacity: 1; border-bottom: 3px solid #6366f1; font-weight: bold; }
         .content { padding: 20px; display: none; }
         .content.active { display: block; }
-        .card { background: #111827; border-radius: 15px; padding: 20px; border: 1px solid #374151; margin-bottom: 15px; }
+        .card { background: #111827; border-radius: 20px; padding: 25px; border: 1px solid #1e293b; margin-top: 20px; }
+        input { width: 90%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; }
+        .btn { background: #6366f1; color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -22,26 +24,49 @@
 
     <div id="wallet" class="content active">
         <div class="card">
-            <h2>הארנק שלי</h2>
-            <h1 style="color:#6366f1">1,000 SLH</h1>
-            <button style="width:100%; padding:10px; background:#6366f1; color:white; border:none; border-radius:10px;">💸 העברה מהירה</button>
+            <p>יתרה זמינה</p>
+            <h1 style="font-size: 40px; color: #6366f1;">1,000 SLH</h1>
+            <hr style="border: 0.5px solid #1e293b; margin: 20px 0;">
+            <h3>💸 העברה מהירה</h3>
+            <input type="number" id="rid" placeholder="ID של המקבל">
+            <input type="number" id="amt" placeholder="כמות להעברה">
+            <input type="password" id="pin" placeholder="קוד אבטחה (PIN)">
+            <button class="btn" onclick="doTransfer()">בצע העברה עכשיו</button>
         </div>
     </div>
 
     <div id="games" class="content">
         <div class="card">
-            <h2>ארקייד יהלום</h2>
-            <div style="font-size:50px; margin:20px;">💎</div>
-            <button style="width:100%; padding:10px; background:#6366f1; color:white; border:none; border-radius:10px;">סובב עכשיו (50 SLH)</button>
+            <h2>🕹️ DIAMOND ARCADE</h2>
+            <div style="font-size: 60px; margin: 30px;">💎</div>
+            <button class="btn" onclick="alert('המשחק יתעדכן בסיבוב הבא!')">סובב עכשיו (50 SLH)</button>
         </div>
     </div>
 
     <script>
+        const tg = window.Telegram.WebApp;
         function show(id, el) {
             document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             el.classList.add('active');
+        }
+
+        async function doTransfer() {
+            const data = {
+                sender_id: tg.initDataUnsafe.user.id,
+                receiver_id: document.getElementById('rid').value,
+                amount: document.getElementById('amt').value,
+                password: document.getElementById('pin').value
+            };
+            const res = await fetch('/api/transfer', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if(result.status === 'success') { alert('✅ ההעברה בוצעה!'); location.reload(); }
+            else { alert('❌ שגיאה: ' + result.message); }
         }
     </script>
 </body>

@@ -24,28 +24,66 @@ async def serve_index():
     <html lang="he" dir="rtl">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <title>Diamond VIP Arcade</title>
         <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: radial-gradient(circle, #1a1a2e 0%, #07070a 100%); color: white; text-align: center; margin: 0; padding: 20px; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
-            .diamond { font-size: 100px; margin-bottom: 20px; filter: drop-shadow(0 0 30px #00d2ff); animation: float 3s ease-in-out infinite; }
-            h1 { color: #00d2ff; text-transform: uppercase; letter-spacing: 3px; text-shadow: 0 0 15px #00d2ff; margin: 10px 0; font-size: 28px; }
-            .status-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 25px; padding: 25px; width: 85%; backdrop-filter: blur(15px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-            .user-welcome { font-size: 20px; margin-bottom: 10px; color: #fff; }
-            .sync-text { color: #00ff88; font-weight: bold; font-size: 14px; text-transform: uppercase; }
-            .btn-close { margin-top: 30px; background: linear-gradient(45deg, #00d2ff, #3a7bd5); border: none; padding: 12px 40px; color: white; border-radius: 50px; font-weight: bold; cursor: pointer; box-shadow: 0 5px 20px rgba(0, 210, 255, 0.4); }
-            @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } }
+            :root { --glow-color: #00d2ff; --bg-dark: #05050a; }
+            body { font-family: 'Segoe UI', system-ui; background: var(--bg-dark); color: white; margin: 0; padding: 0; overflow-x: hidden; }
+            .hero { height: 250px; background: linear-gradient(180deg, #1a1a2e 0%, var(--bg-dark) 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+            .diamond { font-size: 80px; filter: drop-shadow(0 0 20px var(--glow-color)); animation: float 3s ease-in-out infinite; }
+            h1 { font-size: 26px; letter-spacing: 5px; color: var(--glow-color); text-shadow: 0 0 10px var(--glow-color); margin: 10px 0; }
+            .arcade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
+            .game-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 15px; padding: 20px; text-align: center; backdrop-filter: blur(5px); transition: 0.3s; }
+            .game-card:active { transform: scale(0.95); border-color: var(--glow-color); }
+            .game-icon { font-size: 40px; margin-bottom: 10px; }
+            .game-title { font-weight: bold; font-size: 14px; color: #ddd; }
+            .footer-nav { position: fixed; bottom: 0; width: 100%; background: rgba(26, 26, 46, 0.95); padding: 15px 0; border-top: 1px solid var(--glow-color); text-align: center; }
+            .buy-btn { background: linear-gradient(45deg, #00d2ff, #3a7bd5); border: none; padding: 12px 30px; color: white; border-radius: 50px; font-weight: bold; font-size: 16px; box-shadow: 0 0 15px var(--glow-color); }
+            @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
         </style>
     </head>
     <body>
-        <div class="diamond">💎</div>
-        <h1>Diamond VIP Arcade</h1>
-        <div class="status-card">
-            <div class="user-welcome">שלום, <span id="user-name">VIP User</span>!</div>
-            <div class="sync-text">● המערכת מחוברת ומסונכרנת</div>
+        <div class="hero">
+            <div class="diamond">💎</div>
+            <h1>DIAMOND ARCADE</h1>
+            <p style="color: #888; font-size: 12px;">מחובר כעת: <span id="user-name" style="color:var(--glow-color)">VIP</span></p>
         </div>
-        <button class="btn-close" onclick="window.Telegram.WebApp.close()">סגור וחזור לבוט</button>
+        
+        <div class="arcade-grid">
+            <div class="game-card">
+                <div class="game-icon">🎰</div>
+                <div class="game-title">סלוט יהלום</div>
+                <div style="font-size:10px; color: #00ff88;">פעיל</div>
+            </div>
+            <div class="game-card">
+                <div class="game-icon">🃏</div>
+                <div class="game-title">פוקר AI</div>
+                <div style="font-size:10px; color: #ffaa00;">בקרוב</div>
+            </div>
+            <div class="game-card">
+                <div class="game-icon">🚀</div>
+                <div class="game-title">קראש מטבעות</div>
+                <div style="font-size:10px; color: #ffaa00;">בקרוב</div>
+            </div>
+            <div class="game-card">
+                <div class="game-icon">🔮</div>
+                <div class="game-title">גלגל המזל</div>
+                <div style="font-size:10px; color: #00ff88;">פעיל</div>
+            </div>
+        </div>
+
+        <div style="padding: 20px; margin-bottom: 100px;">
+            <div style="background: rgba(0, 210, 255, 0.1); border-radius: 10px; padding: 15px; border-right: 4px solid var(--glow-color);">
+                <div style="font-weight: bold;">מעוניין בבוט כזה לעסק שלך?</div>
+                <div style="font-size: 12px; margin-top: 5px; color: #ccc;">כרטיס ביקור דיגיטלי הכולל מיני-אפ, ארנק וניהול לקוחות.</div>
+            </div>
+        </div>
+
+        <div class="footer-nav">
+            <button class="buy-btn" onclick="tg.close()">לרכישת המערכת ופרטים</button>
+        </div>
+
         <script>
             let tg = window.Telegram.WebApp;
             tg.expand();
@@ -64,7 +102,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
     if update_id in processed_updates: return {"ok": True}
     processed_updates.add(update_id)
     if len(processed_updates) > 500: processed_updates.clear()
-
+    
     if "message" in data:
         background_tasks.add_task(handle_message, data["message"])
     elif "callback_query" in data:

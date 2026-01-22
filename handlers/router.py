@@ -8,33 +8,27 @@ def handle_message(message):
     text = message.get("text", "")
 
     if text.startswith("/start"):
-        # בדיקה אם המשתמש הגיע דרך לינק הזמנה (Referral)
-        referrer_id = text.split(" ")[1] if len(text.split(" ")) > 1 else None
-        
-        msg = "💎 **DIAMOND ELITE PRO v5.0**\n\nברוך הבא למערכת.\nהלינק האישי שלך להזמנת חברים:\n	.me/bot-production-2668.up.railway.app?start={user_id}"
+        msg = "👑 **DIAMOND ELITE SYSTEM v6.0**\n\nברוך הבא למוצר המלא. המערכת כוללת ארקייד, AI וניהול נכסים."
         kb = { "inline_keyboard": [
-            [{"text": "🎮 פתח ארקייד", "web_app": {"url": "https://bot-production-2668.up.railway.app/"}}],
-            [{"text": "📊 דוח מנהל", "callback_data": "admin_report"}] if str(user_id) == str(ADMIN_ID) else [{"text": "🏆 מובילים", "callback_data": "leaderboard"}]
+            [{"text": "🎮 כניסה לארקייד Pro", "web_app": {"url": "https://bot-production-2668.up.railway.app/"}}],
+            [{"text": "🤖 AI אנליסט", "callback_data": "ai_chat"}, {"text": "🏆 מובילים", "callback_data": "leaderboard"}],
+            [{"text": "👤 פרופיל & שותפים", "callback_data": "user_profile"}]
         ]}
+        if str(user_id) == str(ADMIN_ID):
+            kb["inline_keyboard"].append([{"text": "📊 דאשבורד ניהול", "callback_data": "admin_report"}])
+            
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": msg, "reply_markup": kb, "parse_mode": "Markdown"})
-
-    elif text == "/admin" and str(user_id) == str(ADMIN_ID):
-        send_admin_report(chat_id)
-
-def send_admin_report(chat_id):
-    stats = get_total_stats()
-    report = f"📊 **דוח מנהל חי:**\n\n👤 משתמשים: {stats[0]}\n💰 מחזור SLH: {stats[1]}\n🟢 מערכת: Active"
-    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": report})
 
 def handle_callback(callback_query):
     chat_id = callback_query.get("message", {}).get("chat", {}).get("id")
     user_id = callback_query.get("from", {}).get("id")
     data = callback_query.get("data", "")
     
-    # אישור לחיצה חובה למניעת "שעון מסתובב"
     requests.post(f"{TELEGRAM_API_URL}/answerCallbackQuery", json={"callback_query_id": callback_query['id']})
 
     if data == "admin_report" and str(user_id) == str(ADMIN_ID):
-        send_admin_report(chat_id)
-    elif data == "leaderboard":
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "🏆 טבלת המובילים בטעינה..."})
+        s = get_total_stats()
+        report = f"📊 **דוח מערכת מלא:**\n\n👤 משתמשים: {s[0]}\n💰 מחזור: {s[1]}\n⚙️ AI: Active\n🌐 WebApp: Online"
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": report})
+    elif data == "ai_chat":
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": "🤖 שלח לי שם של מטבע או שאלה על השוק:"})

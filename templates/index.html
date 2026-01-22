@@ -1,60 +1,75 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Diamond Elite Arcade</title>
+    <title>Diamond VIP Arcade</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { background: #0a0a0c; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; text-align: center; }
-        .gold-btn { background: linear-gradient(45deg, #bf953f, #fcf6ba); color: #000; border: none; padding: 15px; border-radius: 12px; font-weight: 900; width: 80%; margin: 10px; cursor: pointer; }
-        .card { background: #16161a; border: 1px solid #bf953f; border-radius: 20px; padding: 20px; margin: 15px; box-shadow: 0 0 20px rgba(191,149,63,0.2); }
-        canvas { background: #5c94fc; border-radius: 15px; width: 90%; height: 200px; margin: 10px 0; border: 3px solid #333; }
+        :root { --gold: #fcf6ba; --dark: #0f0f12; }
+        body { background: var(--dark); color: #fff; font-family: system-ui; margin: 0; padding-bottom: 80px; }
+        .header { background: linear-gradient(to bottom, #1a1a20, var(--dark)); padding: 25px; border-bottom: 1px solid #333; }
+        .balance-card { background: linear-gradient(45deg, #bf953f, #fcf6ba); color: #000; border-radius: 20px; padding: 20px; margin: -40px 20px 20px; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
+        .game-card { background: #1c1c22; border-radius: 15px; padding: 15px; border: 1px solid #333; transition: 0.3s; }
+        .game-card:active { transform: scale(0.95); border-color: #bf953f; }
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #16161a; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #333; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2 style="margin:0;">DIAMOND <span style="color:#bf953f;">ELITE</span></h2>
-        <div id="bal" style="font-size: 32px; font-weight: 900; color:#bf953f;">---</div>
-        <div style="font-size: 12px; opacity: 0.6;">CURRENT SLH BALANCE</div>
+    <div class="header">
+        <h1 style="color: var(--gold); margin: 0;">DIAMOND ARCADE</h1>
+        <p style="opacity: 0.7;">מערכת המשחקים היוקרתית</p>
+    </div>
+    <div class="balance-card">
+        <div style="font-size: 14px; opacity: 0.8;">היתרה שלך (SLH)</div>
+        <div id="balance" style="font-size: 32px;">0</div>
     </div>
 
-    <div class="card">
-        <h3>🎮 RETRO MARIO</h3>
-        <canvas id="gameCanvas"></canvas>
-        <button class="gold-btn" onclick="startGame()">PLAY & EARN</button>
+    <div class="game-grid">
+        <div class="game-card" onclick="playGame('mario')">
+            <div style="font-size: 40px;">🍄</div>
+            <h3>Super Mario</h3>
+            <p style="font-size: 12px; opacity: 0.6;">משחק הרפתקאות נוסטלגי</p>
+        </div>
+        <div class="game-card" onclick="playGame('roulette')">
+            <div style="font-size: 40px;">🎰</div>
+            <h3>Daily Spin</h3>
+            <p style="font-size: 12px; opacity: 0.6;">בונוס יומי בחינם</p>
+        </div>
     </div>
 
-    <button class="gold-btn" style="background: #222; color: #fff; border: 1px solid #444;" onclick="dailySpin()">🎁 DAILY ROULETTE</button>
+    <div class="nav-bar">
+        <span onclick="location.reload()">🏠 בית</span>
+        <span onclick="Swal.fire('חנות', 'בקרוב תוכל לרכוש כאן שדרוגים', 'info')">🛒 חנות</span>
+        <span onclick="tg.close()">❌ יציאה</span>
+    </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         let userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "12345";
         
-        async function load() {
+        async function fetchStats() {
             const r = await fetch('/api/user/' + userId);
             const d = await r.json();
-            document.getElementById('bal').innerText = d.slh.toLocaleString();
+            document.getElementById('balance').innerText = d.slh.toLocaleString();
         }
 
-        // Game Logic Simple
-        let canvas = document.getElementById('gameCanvas');
-        let ctx = canvas.getContext('2d');
-        function startGame() {
-            Swal.fire('Coming Soon', 'המנוע הגרפי המלא בטעינה...', 'info');
+        async function playGame(type) {
+            tg.HapticFeedback.impactOccurred('medium');
+            if(type === 'roulette') {
+                Swal.fire({ title: 'מסתובב...', timer: 1000, didOpen: () => Swal.showLoading() }).then(async () => {
+                    await fetch(/api/game-action?user_id=){userId}&action=daily&amount=50, {method:'POST'});
+                    Swal.fire('זכית!', '50 SLH נוספו לחשבונך', 'success');
+                    fetchStats();
+                });
+            } else {
+                Swal.fire('Super Mario', 'המנוע הגרפי נטען... הכן את האצבעות לקפיצה!', 'info');
+            }
         }
 
-        async function dailySpin() {
-            tg.HapticFeedback.impactOccurred('heavy');
-            Swal.fire({ title: 'מסתובב...', timer: 1500, didOpen: () => Swal.showLoading() }).then(async () => {
-                await fetch('/api/save-game-score?user_id=' + userId + '&score=500', {method: 'POST'});
-                Swal.fire('זכית!', 'קיבלת 50 SLH מתנה יומית', 'success');
-                load();
-            });
-        }
-
-        load();
+        fetchStats();
         tg.expand();
     </script>
 </body>

@@ -1,52 +1,38 @@
 ﻿import requests
-from utils.config import TELEGRAM_API_URL, ADMIN_ID, OPENAI_KEY
+from utils.config import TELEGRAM_API_URL, OPENAI_KEY
 from buttons.menus import get_main_menu, get_reply_keyboard, get_games_menu
-from db.users import add_xp, get_user_data
+from db.users import update_user_economy, get_user_stats
 
 async def handle_message(message):
     user_id = message["from"]["id"]
     
-    # בדיקה אם ההודעה היא תוצאה של משחק (Dice)
+    # לוגיקת זכייה במשחקים
     if "dice" in message:
-        value = message["dice"]["value"]
+        val = message["dice"]["value"]
         emoji = message["dice"]["emoji"]
-        xp_won = 0
+        xp, slh = 10, 0 # כל משחק נותן 10 XP על השתתפות
         msg = ""
 
-        if emoji == "🏀" and value >= 4:
-            xp_won = 50
-            msg = "🏀 סל מטורף! זכית ב-50 XP!"
-        elif emoji == "🎳" and value == 6:
-            xp_won = 100
-            msg = "🎳 סטרייק!! זכית ב-100 XP!"
-        elif emoji == "🎯" and value == 6:
-            xp_won = 150
-            msg = "🎯 בול פגיעה! זכית ב-150 XP!"
+        if (emoji == "🏀" and val >= 4) or (emoji == "🎳" and val == 6) or (emoji == "🎯" and val == 6):
+            slh = 50
+            msg = f"🔥 מדהים! הצלחת וזכית ב-50 מטבעות SLH!"
         
-        if xp_won > 0:
-            add_xp(user_id, xp_won)
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg})
+        update_user_economy(user_id, xp, slh)
+        if msg: requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg})
         return
 
     text = message.get("text", "")
     if text == "/start" or text == "🔙 חזרה":
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-            "chat_id": user_id, 
-            "text": "🏆 **Diamond Arcade VIP**\nהארנק שלך פעיל!",
+            "chat_id": user_id, "text": "🏆 **Diamond Arcade VIP**",
             "reply_markup": {"keyboard": get_reply_keyboard()["keyboard"], "resize_keyboard": True}
         })
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-            "chat_id": user_id, "text": "בחר אפשרות:",
+            "chat_id": user_id, "text": "בחר פעולה:",
             "reply_markup": {"inline_keyboard": get_main_menu('he', user_id)}
         })
 
     elif text == "💰 הארנק שלי":
-        xp, bal, refs = get_user_data(user_id)
-        level = "טירון" if xp < 500 else "סוחר מתקדמת" if xp < 2000 else "לווייתן VIP"
-        msg = f"💳 **הארנק שלך**\n\n✨ נקודות (XP): {xp}\n🏆 דרגה: {level}\n💰 יתרה: {bal}\n👥 חברים שהזמנת: {refs}"
+        xp, slh, bal = get_user_stats(user_id)
+        msg = f"💳 **הארנק שלך**\n\n🪙 מטבעות SLH: {slh}\n✨ נקודות XP: {xp}\n💰 יתרה: {bal}"
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg})
-
-    elif text == "🎮 משחקים ופרסים":
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-            "chat_id": user_id, "text": "🎰 בחר משחק:", "reply_markup": {"inline_keyboard": get_games_menu()}
-        })

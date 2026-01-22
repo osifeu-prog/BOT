@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# טלגרם
+# טלגרם - שימוש בשמות המשתנים המדויקים מה-Railway שלך
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
@@ -11,8 +11,11 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 # מסד נתונים
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# הגדרות מוצר
+# הגדרות מוצר וניהול
 PRICE_SH = os.getenv("PRICE_SH", "100")
 TON_WALLET = os.getenv("TON_WALLET", "YOUR_TON_WALLET")
 BOT_USERNAME = os.getenv("BOT_USERNAME", "OsifShopBot")
-ADMIN_ID = os.getenv("ADMIN_ID") # אופציונלי
+ADMIN_ID = os.getenv("ADMIN_ID")
+
+# משתנים נוספים מהרשימה שלך (אופציונלי לשימוש עתידי)
+WIN_CHANCE = os.getenv("WIN_CHANCE_PERCENT", "30")

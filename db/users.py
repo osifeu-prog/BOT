@@ -20,7 +20,8 @@ def claim_daily(user_id):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("SELECT last_daily FROM users WHERE user_id = %s", (str(user_id),))
-    last = cur.fetchone()[0]
+    res = cur.fetchone()
+    last = res[0] if res else None
     now = datetime.now()
     if last and now - last < timedelta(days=1):
         cur.close(); conn.close(); return False
@@ -41,7 +42,8 @@ def transfer_slh(from_id, to_id, amount):
     cur = conn.cursor()
     try:
         cur.execute("SELECT slh_coins FROM users WHERE user_id = %s", (str(from_id),))
-        if cur.fetchone()[0] < amount: return False
+        bal = cur.fetchone()[0]
+        if bal < amount: return False
         cur.execute("UPDATE users SET slh_coins = slh_coins - %s WHERE user_id = %s", (amount, str(from_id)))
         cur.execute("UPDATE users SET slh_coins = slh_coins + %s WHERE user_id = %s", (amount, str(to_id)))
         conn.commit(); return True

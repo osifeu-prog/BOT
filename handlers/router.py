@@ -3,63 +3,84 @@ from utils.config import TELEGRAM_API_URL, ADMIN_ID, OPENAI_KEY, BOT_USERNAME
 from buttons.menus import get_main_menu, get_reply_keyboard, get_games_menu
 from db.users import update_user_economy, get_user_stats, transfer_slh, get_leaderboard, claim_daily
 
-user_cooldowns = {}
+user_modes = {}
 
 async def handle_message(message):
     user_id = str(message["from"]["id"])
     text = message.get("text", "")
-    
-    # הגנת ספאם
     now = time.time()
+
+    # הגנת ספאם
     if user_id in user_cooldowns and now - user_cooldowns[user_id] < 1: return
     user_cooldowns[user_id] = now
 
-    if "dice" in message:
-        val, emo = message["dice"]["value"], message["dice"]["emoji"]
-        update_user_economy(user_id, xp_add=10)
-        if (emo == "🏀" and val >= 4) or (emo == "🎳" and val == 6):
-            update_user_economy(user_id, slh_add=70)
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "🔥 ביצוע מטורף! קיבלת 70 SLH!"})
+    # 1. פקודת אדמין
+    if text == "/admin":
+        if user_id == str(ADMIN_ID):
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "🛠 פאנל ניהול אדמין פעיל."})
+        else:
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "❌ אין לך הרשאות ניהול."})
         return
 
-    if text.startswith("/start pay_"):
-        target_id = text.split("_")[1]
-        if transfer_slh(user_id, target_id, 50):
-            msg = f"✅ שלחת 50 SLH לכתובת {target_id}!"
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": target_id, "text": "💰 קיבלת 50 SLH מחבר!"})
-        else: msg = "❌ אין לך מספיק SLH."
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg})
-        return
-
+    # 2. כפתורי מערכת ו-Start
     if text == "/start" or text == "🔙 חזרה":
+        user_modes[user_id] = None
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-            "chat_id": user_id, "text": "💎 **Diamond VIP Arcade** 💎",
+            "chat_id": user_id, "text": "💎 **Diamond VIP Arcade**\nברוך הבא למערכת המשופרת!",
             "reply_markup": {"keyboard": get_reply_keyboard()["keyboard"], "resize_keyboard": True}
         })
         requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
             "chat_id": user_id, "text": "בחר פעולה:",
             "reply_markup": {"inline_keyboard": get_main_menu('he', user_id)}
         })
+        return
 
-    elif text == "💰 הארנק שלי":
+    # 3. הארנק המשודרג (כולל דרגות)
+    if text == "💰 הארנק שלי":
         xp, slh, bal, _ = get_user_stats(user_id)
+        
+        if xp < 500:
+            rank, next_rank = "🥉 Bronze Member", f"עוד {500-xp} XP ל-Silver"
+        elif xp < 2000:
+            rank, next_rank = "🥈 Silver VIP", f"עוד {2000-xp} XP ל-Diamond"
+        else:
+            rank, next_rank = "💎 Diamond Whale", "הגעת לדרגת המקסימום!"
+
         pay_link = f"https://t.me/{BOT_USERNAME}?start=pay_{user_id}"
-        msg = f"💳 **הארנק שלך**\n\n🪙 SLH: {slh}\n✨ XP: {xp}\n💰 יתרה: {bal}\n\n🔗 לינק לתשלום:\n{pay_link}"
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg, "parse_mode": "Markdown"})
+        msg = (f"👤 **כרטיס שחקן VIP**\n━━━━━━━━━━━━\n"
+               f"🏅 **דרגה:** {rank}\n"
+               f"✨ **ניסיון (XP):** {xp}\n"
+               f"📈 {next_rank}\n━━━━━━━━━━━━\n"
+               f"🪙 **מטבעות SLH:** {slh}\n"
+               f"💰 **יתרה למימוש:** {bal}\n\n"
+               f"🔗 **לינק אישי:**\n{pay_link}")
+        
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
+            "chat_id": user_id, "text": msg, "parse_mode": "Markdown",
+            "reply_markup": {"inline_keyboard": [[{"text": "💳 בקשת משיכה", "callback_data": "withdraw_req"}]]}
+        })
+        return
 
-    elif text == "📊 טבלת מובילים":
-        top = get_leaderboard()
-        msg = "🏆 **TOP 5 DIAMOND:**\n\n" + "\n".join([f"{i+1}. {u[0][:5]}... - {u[1]} SLH" for i, u in enumerate(top)])
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg})
+    # 4. מצב AI
+    if text == "🤖 שאל את ה-AI":
+        user_modes[user_id] = "ai"
+        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
+            "chat_id": user_id, "text": "🤖 **מצב AI פעיל.**\nשאל אותי הכל על המערכת או שוק הון.\nלחץ 'חזרה' כדי לצאת.",
+            "reply_markup": {"keyboard": [[{"text": "🔙 חזרה"}]], "resize_keyboard": True}
+        })
+        return
 
-    elif text == "🎁 בונוס יומי":
-        if claim_daily(user_id): msg = "✅ קיבלת 50 SLH מתנה יומית!"
-        else: msg = "⏳ כבר לקחת היום, חזור מחר!"
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": msg})
-
-    elif not text.startswith("/") and OPENAI_KEY:
-        # AI Logic... (GPT-4o-mini)
+    # 5. מענה AI
+    if user_modes.get(user_id) == "ai" and not text.startswith("/"):
         requests.post(f"{TELEGRAM_API_URL}/sendChatAction", json={"chat_id": user_id, "action": "typing"})
-        payload = {"model": "gpt-4o-mini", "messages": [{"role": "system", "content": "מנהל VIP כריזמטי."}, {"role": "user", "content": text}]}
-        res = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers={"Authorization": f"Bearer {OPENAI_KEY}"}).json()
-        requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": res['choices'][0]['message']['content']})
+        payload = {"model": "gpt-4o-mini", "messages": [{"role": "system", "content": "אתה מנהל VIP כריזמטי."}, {"role": "user", "content": text}]}
+        try:
+            r = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers={"Authorization": f"Bearer {OPENAI_KEY}"})
+            res = r.json()
+            reply = res['choices'][0]['message']['content'] if 'choices' in res else "⚠️ שגיאת AI."
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": reply})
+        except:
+            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": user_id, "text": "❌ שגיאה בחיבור."})
+        return
+
+user_cooldowns = {}

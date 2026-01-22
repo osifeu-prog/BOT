@@ -1,4 +1,5 @@
 ﻿from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 import requests
 import asyncio
 from utils.config import TELEGRAM_API_URL, PORT
@@ -9,30 +10,31 @@ import uvicorn
 
 app = FastAPI()
 
-# משתנה למניעת עיבוד כפול של אותה הודעה בשניות קרובות
+# מנגנון זיכרון גלובלי למניעת כפילויות
 processed_updates = set()
 
 @app.on_event("startup")
 async def startup_event():
     initialize_db()
     webhook_url = "https://bot-production-2668.up.railway.app/webhook"
-    # ניקוי מוחלט של כל ההודעות שמחכות בשרת טלגרם
-    requests.get(f"{TELEGRAM_API_URL}/deleteWebhook?drop_pending_updates=True")
-    await asyncio.sleep(1) # הפסקה קצרה לסנכרון
-    requests.get(f"{TELEGRAM_API_URL}/setWebhook?url={webhook_url}")
-    print("🛡️ System Locked & Stabilized - No More Duplicate Messages")
+    requests.get(f"{TELEGRAM_API_URL}/setWebhook?url={webhook_url}&drop_pending_updates=True")
+    print("🚀 System Stabilized & Mini-App Route Active")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_index():
+    return "<html><body><h1>Diamond VIP Arcade</h1><p>Welcome to the Mini-App!</p></body></html>"
 
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     data = await request.json()
     update_id = data.get("update_id")
     
-    # הגנה מפני עיבוד כפול של אותו Update
-    if update_id in processed_updates:
-        return {"status": "already_processed"}
+    if not update_id or update_id in processed_updates:
+        return {"status": "ignored"}
+    
     processed_updates.add(update_id)
-    if len(processed_updates) > 100: # ניקוי הזיכרון מדי פעם
-        processed_updates.pop()
+    if len(processed_updates) > 200:
+        processed_updates.clear() # איפוס מבוקר
 
     if "message" in data:
         await handle_message(data["message"])

@@ -5,31 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #0b0b0e; color: #fff; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
-        .ticker { background: #bf953f; color: #000; padding: 8px; font-weight: bold; border-radius: 5px; margin-bottom: 20px; }
-        .card { background: #16161d; border: 1px solid #333; padding: 20px; border-radius: 20px; margin-bottom: 15px; }
-        .xp-bar { background: #333; height: 12px; border-radius: 6px; overflow: hidden; margin: 10px 0; }
-        .xp-fill { background: linear-gradient(90deg, #bf953f, #fcf6ba); height: 100%; width: 45%; }
-        .btn { background: linear-gradient(45deg, #bf953f, #fcf6ba); color: #000; padding: 18px; border-radius: 15px; width: 100%; border: none; font-weight: bold; font-size: 18px; }
+        body { background: #0b0b0e; color: #fff; font-family: sans-serif; padding: 15px; text-align: center; }
+        .ticker { background: #bf953f; color: #000; padding: 10px; font-weight: bold; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .game-card { background: #1c1c24; border: 1px solid #333; padding: 20px; border-radius: 15px; transition: 0.3s; }
+        .game-card:active { transform: scale(0.95); border-color: gold; }
+        .btn-main { background: linear-gradient(45deg, #bf953f, #fcf6ba); color: #000; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; border: none; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div class="ticker"><marquee>בונוס רפראל: 500 SLH על כל חבר! • ה-AI צופה עליות ב-TON • משתמש חדש הצטרף עכשיו</marquee></div>
-    <div class="card">
-        <h2>יתרה: <span id="slh">...</span> SLH</h2>
-        <div class="xp-bar"><div class="xp-fill"></div></div>
-        <small>דרגה: Starter (450/1000 XP)</small>
+    <div class="ticker"><marquee>💰 ביטקוין: ,500 • איתריום: ,250 • טון: .15 • זכייה אחרונה: 500 SLH ע"י יוסי</marquee></div>
+    
+    <h3>🎮 Diamond Arcade</h3>
+    <div class="grid">
+        <div class="game-card" onclick="play('Spin')">🎰<br>Daily Spin</div>
+        <div class="game-card" onclick="play('Mario')">🍄<br>Super Mario</div>
+        <div class="game-card" onclick="play('Crypto')">📈<br>Market Predict</div>
+        <div class="game-card" onclick="play('Cards')">🃏<br>Elite Cards</div>
     </div>
-    <button class="btn" onclick="play()">🎰 ספין יומי (צבור XP)</button>
+
+    <div style="margin-top: 30px; background: #16161d; padding: 15px; border-radius: 15px;">
+        <h4>🤖 עוזר ה-AI האישי שלך</h4>
+        <button class="btn-main" onclick="tg.close()">פתח שיחה עם ה-AI</button>
+    </div>
+
     <script>
         let tg = window.Telegram.WebApp;
-        async function load() {
-            const r = await fetch('/api/user/' + tg.initDataUnsafe.user.id);
-            const d = await r.json();
-            document.getElementById('slh').innerText = d.slh.toLocaleString();
+        function play(game) {
+            tg.HapticFeedback.impactOccurred('medium');
+            alert('המשחק ' + game + ' נטען...');
         }
-        function play() { tg.HapticFeedback.impactOccurred('heavy'); alert('זכית ב-50 SLH!'); load(); }
-        load(); tg.expand();
+        tg.expand();
     </script>
 </body>
 </html>

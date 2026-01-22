@@ -1,3 +1,14 @@
+def log_leaderboard_status():
+    try:
+        conn = psycopg2.connect(DATABASE_URL); cur = conn.cursor()
+        cur.execute("SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT 3")
+        top = cur.fetchall()
+        cur.close(); conn.close()
+        msg = "\n" + "═"*30 + "\n👑 LEADERBOARD SNAPSHOT\n"
+        for i, u in enumerate(top): msg += f" {i+1}. {u[0]} - {u[1]:,} SLH\n"
+        msg += "═"*30
+        print(msg)
+    except: pass
 # -*- coding: utf-8 -*-
 import telebot, uvicorn, psycopg2, logging, os, json, random
 from fastapi import FastAPI, Request
@@ -15,7 +26,7 @@ ADMIN_PW = "OSIF_DIAMOND_2026"
 
 def get_db(): return psycopg2.connect(DATABASE_URL)
 
-# --- API לשליפת נתונים וביצוע פעולות ---
+# --- API ×œ×©×œ×™×¤×ھ × ×ھ×•× ×™×‌ ×•×‘×™×¦×•×¢ ×¤×¢×•×œ×•×ھ ---
 
 @app.get("/api/user_data/{uid}")
 async def get_user_data(uid: str):
@@ -38,9 +49,9 @@ async def play_arcade(request: Request):
     balance = cur.fetchone()[0]
     
     if balance < cost:
-        return JSONResponse({"status": "error", "message": "אין מספיק SLH"})
+        return JSONResponse({"status": "error", "message": "×گ×™×ں ×‍×،×¤×™×§ SLH"})
     
-    # לוגיקת זכייה: 30% סיכוי לזכות ב-150 SLH
+    # ×œ×•×’×™×§×ھ ×–×›×™×™×”: 30% ×،×™×›×•×™ ×œ×–×›×•×ھ ×‘-150 SLH
     win = random.random() < 0.3
     prize = 150 if win else 0
     new_balance = balance - cost + prize
@@ -48,15 +59,15 @@ async def play_arcade(request: Request):
     cur.execute("UPDATE users SET balance = %s WHERE user_id = %s", (new_balance, uid))
     conn.commit(); cur.close(); conn.close()
     
-    logger.info(f"🕹️ ARCADE: User {uid} | Play: -{cost} | Win: +{prize} | New Bal: {new_balance}")
+    logger.info(f"ًں•¹ï¸ڈ ARCADE: User {uid} | Play: -{cost} | Win: +{prize} | New Bal: {new_balance}")
     return {"status": "success", "win": win, "prize": prize, "new_balance": new_balance}
 
 @app.get("/hub", response_class=HTMLResponse)
 async def get_hub():
-    logger.info("📱 HUB_OPENED: Interface requested")
+    logger.info("ًں“± HUB_OPENED: Interface requested")
     with open("hub.html", "r", encoding="utf-8") as f: return f.read()
 
-# --- פקודות בוט מעודכנות ---
+# --- ×¤×§×•×“×•×ھ ×‘×•×ک ×‍×¢×•×“×›× ×•×ھ ---
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -67,12 +78,12 @@ def start(message):
     
     hub_url = f"{WEBHOOK_URL.split('/8106')[0]}/hub"
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(KeyboardButton("💎 SUPREME HUB", web_app=WebAppInfo(url=hub_url)))
-    markup.add("📊 פורטפוליו", "🏆 טבלת אלופים", "👥 הזמן חברים", "🎁 בונוס יומי")
-    if uid == ADMIN_ID: markup.add("👑 פאנל ניהול")
+    markup.add(KeyboardButton("ًں’ژ SUPREME HUB", web_app=WebAppInfo(url=hub_url)))
+    markup.add("ًں“ٹ ×¤×•×¨×ک×¤×•×œ×™×•", "ًںڈ† ×ک×‘×œ×ھ ×گ×œ×•×¤×™×‌", "ًں‘¥ ×”×–×‍×ں ×—×‘×¨×™×‌", "ًںژپ ×‘×•× ×•×، ×™×•×‍×™")
+    if uid == ADMIN_ID: markup.add("ًں‘‘ ×¤×گ× ×œ × ×™×”×•×œ")
     
-    logger.info(f"🆕 START_CMD: User {uid} initialized menu")
-    bot.send_message(message.chat.id, "💎 **DIAMOND SUPREME**\nהמערכת מסונכרנת ליתרה שלך.", reply_markup=markup, parse_mode="HTML")
+    logger.info(f"ًں†• START_CMD: User {uid} initialized menu")
+    bot.send_message(message.chat.id, "ًں’ژ **DIAMOND SUPREME**\n×”×‍×¢×¨×›×ھ ×‍×،×•× ×›×¨× ×ھ ×œ×™×ھ×¨×” ×©×œ×ڑ.", reply_markup=markup, parse_mode="HTML")
 
 @app.post(f"/{TELEGRAM_TOKEN}/")
 async def web(request: Request):
@@ -82,3 +93,4 @@ async def web(request: Request):
 
 @app.on_event("startup")
 def setup(): bot.set_webhook(url=f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}/")
+

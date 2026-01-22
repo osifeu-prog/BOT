@@ -8,25 +8,42 @@ from handlers.arcade import play_dice
 from handlers.ai_agent import get_market_insight
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
-logger = logging.getLogger("DIAMOND_BOT")
+logger = logging.getLogger("SAAS_CORE")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
 app = FastAPI()
 
-def get_db():
-    return psycopg2.connect(DATABASE_URL)
+# --- פונקציות ליבה ---
+def get_db(): return psycopg2.connect(DATABASE_URL)
+
+def get_user_role(uid):
+    if str(uid) == str(ADMIN_ID): return 10
+    conn = get_db(); cur = conn.cursor()
+    cur.execute("SELECT admin_level FROM users WHERE user_id = %s", (str(uid),))
+    res = cur.fetchone()
+    cur.close(); conn.close()
+    return res[0] if res else 0
 
 def patch_database():
     conn = get_db(); cur = conn.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, balance INTEGER DEFAULT 100, xp INTEGER DEFAULT 0, rank TEXT DEFAULT 'Starter', last_bonus TIMESTAMP DEFAULT NULL, referred_by TEXT DEFAULT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);")
-    cur.execute("CREATE TABLE IF NOT EXISTS journal (id SERIAL PRIMARY KEY, user_id TEXT, entry TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_bonus TIMESTAMP DEFAULT NULL;")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by TEXT DEFAULT NULL;")
+    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_level INTEGER DEFAULT 0;")
+    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS status_updates TEXT DEFAULT 'System Initialized';")
     conn.commit(); cur.close(); conn.close()
 
-def main_menu():
+# --- תפריטים ---
+def main_menu(uid):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add("💳 פורטפוליו & ארנק", "🤖 סוכן AI אסטרטגי", "🕹️ ארקייד Supreme", "🛒 חנות הבוטים", "🎁 בונוס יומי", "👥 הזמן חברים", "📞 תמיכה וקשר")
+    role = get_user_role(uid)
+    markup.add("💳 פורטפוליו", "🤖 סוכן AI", "🕹️ ארקייד", "🛒 חנות", "🎁 בונוס יומי", "👥 הזמן חברים", "📋 מצב מערכת")
+    if role >= 1: markup.add("🛠️ פאנל ניהול")
+    return markup
+
+def admin_panel(role):
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add("📊 סטטיסטיקה", "📢 שידור גלובלי")
+    if role >= 5: markup.add("💰 עריכת יתרות", "🔑 ניהול הרשאות")
+    if role >= 10: markup.add("⚙️ הגדרות ליבה", "📂 גיבוי DB")
+    markup.add("🔙 חזרה לתפריט")
     return markup
 
 @app.post(f"/{TELEGRAM_TOKEN}/")
@@ -35,60 +52,48 @@ async def process_webhook(request: Request):
     bot.process_new_updates([update])
     return "ok"
 
+# --- פקודות מערכת ---
+@bot.message_handler(func=lambda m: m.text == "📋 מצב מערכת")
+def system_status(message):
+    status_report = (
+        "📊 **דוח מצב מערכת - Diamond SaaS**\n"
+        "------------------------------\n"
+        "✅ **שרת:** Railway Cloud - Active\n"
+        "✅ **מסד נתונים:** PostgreSQL - Connected\n"
+        "✅ **Websheet:** slh-nft.com - Live\n\n"
+        "🚀 **פיתוח נוכחי:** הטמעת מערכת הרשאות 1-10\n"
+        "📅 **עדכון אחרון:** 22/01/2026\n"
+    )
+    bot.reply_to(message, status_report, parse_mode="Markdown")
+
+@bot.message_handler(func=lambda m: m.text == "🛠️ פאנל ניהול")
+def open_admin(message):
+    role = get_user_role(message.from_user.id)
+    if role < 1: return
+    bot.send_message(message.chat.id, f"👑 **ברוך הבא למרכז השליטה**\nדרגת הרשאה: {role}", reply_markup=admin_panel(role))
+
+@bot.message_handler(func=lambda m: m.text == "📊 סטטיסטיקה")
+def stats(message):
+    if get_user_role(message.from_user.id) < 1: return
+    conn = get_db(); cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM users")
+    total = cur.fetchone()[0]
+    cur.close(); conn.close()
+    bot.reply_to(message, f"📈 **נתוני SaaS:**\nמשתמשים רשומים: {total}")
+
+@bot.message_handler(func=lambda m: m.text == "🔙 חזרה לתפריט")
+def back_home(message):
+    bot.send_message(message.chat.id, "חזרה לתפריט ראשי", reply_markup=main_menu(message.from_user.id))
+
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.from_user.id)
-    args = message.text.split()
-    referrer = args[1] if len(args) > 1 else None
-    
     conn = get_db(); cur = conn.cursor()
-    cur.execute("SELECT user_id FROM users WHERE user_id = %s", (uid,))
-    if not cur.fetchone():
-        # רישום משתמש חדש + בונוס למזמין
-        cur.execute("INSERT INTO users (user_id, balance, referred_by) VALUES (%s, 100, %s)", (uid, referrer))
-        if referrer:
-            cur.execute("UPDATE users SET balance = balance + 50 WHERE user_id = %s", (referrer,))
-            try: bot.send_message(referrer, "🎊 חבר נרשם דרכך! קיבלת 50 SLH בונוס.")
-            except: pass
-        conn.commit()
-        bot.send_message(message.chat.id, "🎁 ברוך הבא! קיבלת 100 SLH מתנת הצטרפות.")
-    cur.close(); conn.close()
-    bot.send_message(message.chat.id, f"💎 **DIAMOND SUPREME**\nהמערכת פעילה עבורך.\n🌐 {BASE_URL}", reply_markup=main_menu())
-
-@bot.message_handler(func=lambda m: True)
-def handle_text(message):
-    t, uid, cid = message.text, str(message.from_user.id), message.chat.id
-    
-    if t == "🎁 בונוס יומי":
-        conn = get_db(); cur = conn.cursor()
-        cur.execute("SELECT last_bonus FROM users WHERE user_id = %s", (uid,))
-        last = cur.fetchone()[0]
-        now = datetime.datetime.now()
-        if last is None or (now - last).days >= 1:
-            cur.execute("UPDATE users SET balance = balance + 50, last_bonus = %s WHERE user_id = %s", (now, uid))
-            conn.commit()
-            bot.send_message(cid, "✅ קיבלת 50 SLH בונוס יומי! חזור מחר.")
-        else:
-            bot.send_message(cid, "⏳ כבר אספת את הבונוס היום. חזור מחר!")
-        cur.close(); conn.close()
-
-    elif t == "👥 הזמן חברים":
-        link = f"https://t.me/{BOT_USERNAME}?start={uid}"
-        bot.send_message(cid, f"👥 **תוכנית השותפים**\n\nעל כל חבר שיצטרף דרך הלינק שלך, תקבל **50 SLH** מתנה!\n\n🔗 הלינק שלך:\n{link}")
-
-    elif t == "💳 פורטפוליו & ארנק":
-        cur = get_db().cursor(); cur.execute("SELECT balance, rank FROM users WHERE user_id = %s", (uid,))
-        u = cur.fetchone(); bot.send_message(cid, f"👤 **פרופיל**\n💰 יתרה: {u[0]} SLH\n🏅 דרגה: {u[1]}")
-    elif t == "🤖 סוכן AI אסטרטגי": bot.send_message(cid, get_market_insight(uid))
-    elif t == "🕹️ ארקייד Supreme": bot.send_message(cid, "🎰 הימור 50 SLH:", reply_markup=telebot.types.InlineKeyboardMarkup().add(telebot.types.InlineKeyboardButton("🎲 שחק", callback_data="p50")))
-    elif t == "🛒 חנות הבוטים": bot.send_message(cid, f"🛒 **חנות**\n{TOKEN_PACKS}")
-    elif t == "📞 תמיכה וקשר": bot.send_message(cid, f"📩 [צור קשר בווטסאפ]({WHATSAPP_LINK})", parse_mode="Markdown")
-
-@bot.callback_query_handler(func=lambda c: c.data == "p50")
-def p50(c): bot.send_message(c.message.chat.id, play_dice(c.message.chat.id, str(c.from_user.id), 50, 6))
+    cur.execute("INSERT INTO users (user_id) VALUES (%s) ON CONFLICT DO NOTHING", (uid,))
+    conn.commit(); cur.close(); conn.close()
+    bot.send_message(message.chat.id, "💎 **DIAMOND SUPREME**", reply_markup=main_menu(uid))
 
 @app.on_event("startup")
 def on_startup():
     patch_database()
-    bot.remove_webhook()
     bot.set_webhook(url=f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}/")

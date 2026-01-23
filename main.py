@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from telebot import types
 from utils.config import TELEGRAM_TOKEN, WEBHOOK_URL
-from handlers import wallet_logic, saas, router, admin, ai_agent
+from handlers import wallet_logic
 import uvicorn
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - [%(levelname)s] - %(message)s')
@@ -27,52 +27,62 @@ def wallet_gui(user_id: str):
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0a0a0a; color: white; text-align: center; padding: 20px; margin: 0; }}
-            .card {{ background: linear-gradient(145deg, #1a1a1a, #000); border-radius: 25px; padding: 30px; border: 1px solid #d4af37; box-shadow: 0 15px 35px rgba(0,0,0,0.8); margin-top: 20px; }}
-            .balance {{ font-size: 40px; color: #d4af37; font-weight: bold; margin: 15px 0; letter-spacing: 1px; }}
-            .address {{ font-size: 11px; color: #666; background: #111; padding: 8px; border-radius: 8px; font-family: monospace; display: block; margin-bottom: 20px; }}
-            .stats-container {{ display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }}
-            .stat-box {{ background: #151515; padding: 15px; border-radius: 15px; border: 1px solid #333; }}
-            .stat-label {{ font-size: 12px; color: #888; margin-bottom: 5px; }}
-            .stat-value {{ font-size: 18px; font-weight: bold; color: #fff; }}
-            .btn {{ background: linear-gradient(90deg, #d4af37, #f2d06b); color: black; border: none; padding: 15px; border-radius: 12px; font-weight: bold; margin-top: 30px; width: 100%; font-size: 16px; cursor: pointer; transition: 0.3s; }}
-            .btn:active {{ transform: scale(0.98); opacity: 0.8; }}
+            body {{ font-family: sans-serif; background-color: #0a0a0a; color: white; text-align: center; padding: 20px; }}
+            .card {{ background: linear-gradient(145deg, #1a1a1a, #000); border-radius: 25px; padding: 25px; border: 1px solid #d4af37; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }}
+            .balance {{ font-size: 36px; color: #d4af37; font-weight: bold; margin: 10px 0; }}
+            .btn-group {{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }}
+            .btn {{ background: #222; color: #d4af37; border: 1px solid #d4af37; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; }}
+            .btn-main {{ background: #d4af37; color: black; grid-column: span 2; }}
         </style>
     </head>
     <body>
         <div class="card">
-            <div style="font-size: 14px; color: #d4af37; text-transform: uppercase; letter-spacing: 2px;">Digital Asset Vault</div>
+            <div style="color: #888; font-size: 12px;">יתרה בחשבון</div>
             <div class="balance">{balance:,.2f} SLH</div>
-            <span class="address">{addr}</span>
+            <div style="font-size: 11px; opacity: 0.6;">{addr}</div>
             
-            <div class="stats-container">
-                <div class="stat-box">
-                    <div class="stat-label">דרגת חשבון</div>
-                    <div class="stat-value">{rank}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">ניסיון (XP)</div>
-                    <div class="stat-value">{xp}</div>
-                </div>
+            <div class="btn-group">
+                <button class="btn btn-main" onclick="scanQR()">🔍 סרוק QR להעברה</button>
+                <button class="btn" onclick="showAddress()">📥 הכתובת שלי</button>
+                <button class="btn" onclick="window.Telegram.WebApp.close()">✖️ סגור</button>
             </div>
-            
-            <button class="btn" onclick="window.Telegram.WebApp.close()">סגור וחזור לבוט</button>
         </div>
+
         <script>
-            window.Telegram.WebApp.ready();
-            window.Telegram.WebApp.expand();
+            const webApp = window.Telegram.WebApp;
+            webApp.ready();
+
+            function scanQR() {{
+                webApp.showScanQrPopup({{ text: "סרוק כתובת ארנק להעברה" }}, function(data) {{
+                    webApp.sendData("transfer:" + data); // שולח את הכתובת חזרה לבוט
+                    webApp.close();
+                }});
+            }}
+
+            function showAddress() {{
+                webApp.showAlert("כתובת הארנק שלך היא:\n{addr}");
+            }}
         </script>
     </body>
     </html>
     """
     return html_content
 
+@bot.message_handler(func=lambda message: True)
+def handle_webapp_data(message):
+    if message.web_app_data:
+        data = message.web_app_data.data
+        if data.startswith("transfer:"):
+            target_addr = data.split(":")[1]
+            bot.reply_to(message, f"💸 **העברה בביצוע...**\nיעד: {target_addr}\nכמה תרצה להעביר?")
+            # כאן נמשיך ללוגיקת התשלום
+
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     markup = types.InlineKeyboardMarkup()
-    web_app_url = f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}"
-    markup.add(types.InlineKeyboardButton("🔱 פתח ארנק פרימיום", web_app=types.WebAppInfo(web_app_url)))
-    bot.send_message(message.chat.id, "💎 **SLH OS v2.0**\nהממשק הגרפי שלך מוכן.", reply_markup=markup)
+    url = f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}"
+    markup.add(types.InlineKeyboardButton("🔱 פתח ארנק פרימיום", web_app=types.WebAppInfo(url)))
+    bot.send_message(message.chat.id, "💎 **SLH OS Dashboard**", reply_markup=markup)
 
 @app.post("/")
 async def process_webhook(request: Request):

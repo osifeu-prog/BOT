@@ -45,3 +45,4 @@ if __name__ == "__main__":
     # הרצת השרת
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+# System Patch Applied: 01/23/2026 12:54:41

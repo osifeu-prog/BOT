@@ -6,7 +6,6 @@ from utils.config import *
 from handlers import wallet_logic
 from db.connection import init_db, get_conn
 
-# הגדרת לוגים שיופיעו ב-Railway
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -21,7 +20,6 @@ app = FastAPI()
 async def startup_event():
     logger.info("🚀 SLH OS System starting up...")
     try:
-        # בדיקת חיבור ל-DB בזמן עליה
         conn = get_conn()
         conn.close()
         logger.info("✅ Database connection verified!")
@@ -32,13 +30,14 @@ async def startup_event():
 async def wallet_gui(user_id: str):
     logger.info(f"📱 Wallet GUI requested for user: {user_id}")
     balance, xp, rank, addr = wallet_logic.get_user_full_data(user_id)
-    return f\"\"\"
+    # שימוש במרכאות בודדות בתוך ה-HTML למניעת שגיאות סינטקס
+    return f"""
     <html><body style='background:#000;color:#fff;font-family:sans-serif;text-align:center;padding:50px;'>
         <h1 style='color:#0088cc;'>SLH Wallet</h1>
-        <div style='font-size:40px;'>{balance} SLH</div>
-        <p>Rank: {rank} | XP: {xp}</p>
-        <button onclick='window.Telegram.WebApp.close()' style='padding:10px 20px;border-radius:10px;border:none;background:#0088cc;color:#fff;'>Back</button>
-    </body></html>\"\"\"
+        <div style='font-size:50px; font-weight:bold;'>{balance} SLH</div>
+        <p style='opacity:0.7;'>Rank: {rank} | XP: {xp}</p>
+        <button onclick='window.Telegram.WebApp.close()' style='padding:15px 30px; border-radius:15px; border:none; background:#0088cc; color:#fff; font-weight:bold; cursor:pointer;'>Back to Bot</button>
+    </body></html>"""
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -49,21 +48,24 @@ def start(message):
     
     is_new = wallet_logic.register_user(user_id, referrer)
     if is_new:
-        logger.info(f"🎉 New user registered: {user_id} (Referrer: {referrer})")
+        logger.info(f"🎉 New user registered: {user_id}")
     
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(telebot.types.KeyboardButton("💰 Open Wallet", web_app=telebot.types.WebAppInfo(f"{WEBHOOK_URL}/gui/wallet?user_id={user_id}")))
-    bot.send_message(message.chat.id, "Welcome to SLH OS!", reply_markup=markup)
+    wallet_url = f"{WEBHOOK_URL}/gui/wallet?user_id={user_id}"
+    markup.add(telebot.types.KeyboardButton("💰 Open Wallet", web_app=telebot.types.WebAppInfo(wallet_url)))
+    bot.send_message(message.chat.id, "Welcome to SLH OS! Your wallet is ready.", reply_markup=markup)
 
 @app.post("/")
 async def process_webhook(request: Request):
-    json_data = await request.json()
-    logger.info(f"📩 Webhook received: {json_data.get('update_id')}")
-    update = telebot.types.Update.de_json(json_data)
-    bot.process_new_updates([update])
-    return {"status": "ok"}
+    try:
+        json_data = await request.json()
+        update = telebot.types.Update.de_json(json_data)
+        bot.process_new_updates([update])
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"❌ Webhook error: {e}")
+        return {"status": "error"}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    logger.info(f"🌐 Starting server on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)

@@ -1,4 +1,4 @@
-﻿from db.connection import get_conn
+from db.connection import get_conn
 
 def is_buyer(user_id):
     try:

@@ -1,4 +1,4 @@
-﻿import requests
+import requests
 from utils.config import TELEGRAM_API_URL
 
 def send_message(chat_id, text, reply_markup=None):

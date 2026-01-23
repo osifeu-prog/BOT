@@ -1,4 +1,4 @@
-﻿def detect_language_from_telegram(lang_code):
+def detect_language_from_telegram(lang_code):
     if lang_code and lang_code.startswith("he"):
         return "he"
     return "en"

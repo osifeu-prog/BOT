@@ -1,4 +1,4 @@
-﻿from db.connection import get_conn
+from db.connection import get_conn
 
 def init_tables():
     commands = [
@@ -34,6 +34,6 @@ def init_tables():
         conn.commit()
         cur.close()
         conn.close()
-        print("✅ Tables initialized successfully")
+        print("? Tables initialized successfully")
     except Exception as e:
-        print(f"⚠️ DB Init Warning: {e}")
+        print(f"?? DB Init Warning: {e}")

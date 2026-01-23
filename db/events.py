@@ -1,4 +1,4 @@
-﻿from db.connection import get_conn
+from db.connection import get_conn
 
 def log_event(user_id, event_type, details=""):
     try:

@@ -23,7 +23,7 @@ app = FastAPI()
 @app.get("/gui/wallet", response_class=HTMLResponse)
 def wallet_gui(user_id: str):
     balance, xp, rank, addr = wallet_logic.get_user_full_data(user_id)
-    # أ—آ©أ—â„¢أ—â€چأ—â€¢أ—آ© أ—â€کأ—طŒأ—â€¢أ—â€™أ—آ¨أ—â„¢أ—â„¢أ—â€Œ أ—â€؛أ—آ¤أ—â€¢أ—إ“أ—â„¢أ—â€Œ أ—إ“أ—â€چأ—آ أ—â„¢أ—آ¢أ—ع¾ أ—آ©أ—â€™أ—â„¢أ—ع¯أ—ع¾ f-string
+    # שימוש ב-{{ }} רק בתוך ה-CSS/JS ב-HTML
     html_content = f"""
     <!DOCTYPE html>
     <html lang="he" dir="rtl">
@@ -33,29 +33,31 @@ def wallet_gui(user_id: str):
         <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <style>
             body {{ background-color: #0a0a0a; color: white; text-align: center; font-family: sans-serif; padding: 20px; }}
-            .card {{ background: linear-gradient(145deg, #1a1a1a, #000); border-radius: 20px; padding: 25px; border: 1px solid #d4af37; }}
+            .card {{ background: linear-gradient(145deg, #1a1a1a, #000); border-radius: 20px; padding: 25px; border: 1px solid #d4af37; box-shadow: 0 5px 15px rgba(212,175,55,0.2); }}
             .balance {{ font-size: 32px; color: #d4af37; margin: 10px 0; font-weight: bold; }}
-            .btn {{ background: #007AFF; color: white; border: none; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; margin-top: 20px; cursor: pointer; }}
-            .status {{ font-size: 12px; color: #888; margin-top: 10px; }}
+            .btn {{ background: #007AFF; color: white; border: none; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; margin-top: 20px; cursor: pointer; font-size: 16px; }}
+            .status {{ font-size: 11px; color: #666; margin-top: 15px; }}
         </style>
     </head>
     <body>
         <div class="card">
-            <div style="font-size: 14px;">أ—â„¢أ—ع¾أ—آ¨أ—ع¾ SLH</div>
+            <div style="font-size: 14px; opacity: 0.8;">יתרת SLH</div>
             <div class="balance">{balance:,.2f}</div>
-            <div style="font-size: 11px; color: #666;">{addr if addr else "أ—ع¯أ—آ¨أ—آ أ—آ§ أ—إ“أ—ع¯ أ—â€چأ—â€”أ—â€¢أ—â€کأ—آ¨"}</div>
+            <div style="font-size: 11px; color: #888; overflow-wrap: break-word;">{addr if addr else "ארנק לא מחובר"}</div>
             
-            <button class="btn" onclick="connectTon()">ظ‹ع؛â€™عک أ—â€”أ—â€کأ—آ¨ أ—ع¯أ—آ¨أ—آ أ—آ§ TON (Airdrop)</button>
-            <div class="status">Testnet Mode Active</div>
+            <button class="btn" onclick="connectTon()">💎 חבר ארנק TON (Airdrop)</button>
+            <div class="status">TON Testnet Active</div>
         </div>
 
         <script>
             const webApp = window.Telegram.WebApp;
             webApp.ready();
+            webApp.expand();
+
             function connectTon() {{
-                // أ—آ©أ—إ“أ—â„¢أ—â€”أ—ع¾ أ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾ أ—ع©أ—طŒأ—ع© أ—إ“أ—â€کأ—â€¢أ—ع©
-                const testWallet = "0:TEST_ADDR_" + Math.random().toString(36).substring(7);
-                webApp.sendData("ton_connect:" + testWallet);
+                // הדמיית כתובת הארנק שקיבלת מהבוט של ה-Testnet
+                const myWallet = "UQCr743gEr_nqV_0SBkSp3CtYS_15R3LDLBvLmKeEv7XdGvp"; 
+                webApp.sendData("ton_connect:" + myWallet);
             }}
         </script>
     </body>
@@ -63,36 +65,45 @@ def wallet_gui(user_id: str):
     """
     return html_content
 
-@bot.message_handler(func=lambda message: True, content_types=['web_app_data'])
+@bot.message_handler(content_types=['web_app_data'])
 def handle_webapp_data(message):
     data = message.web_app_data.data
+    logger.info(f"Received WebApp data: {data}")
     if data.startswith("ton_connect:"):
         wallet_addr = data.split(":")[1]
         success, result = wallet_logic.claim_airdrop(message.from_user.id, wallet_addr)
         if success:
-            bot.send_message(message.chat.id, f"أ¢إ“â€¦ **Airdrop أ—â€کأ—â€¢أ—آ¦أ—آ¢!**\n\nأ—آ§أ—â„¢أ—â€کأ—إ“أ—ع¾ {result} SLH أ—آ¢أ—إ“ أ—â€”أ—â„¢أ—â€کأ—â€¢أ—آ¨ أ—ع¯أ—آ¨أ—آ أ—آ§ TON.\nأ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾: {wallet_addr}", parse_mode="Markdown")
+            bot.send_message(message.chat.id, f"✅ **Airdrop מוצלח!**\n\nקיבלת {result} SLH לארנק החדש שלך.\nכתובת: {wallet_addr}", parse_mode="Markdown")
         else:
-            bot.send_message(message.chat.id, f"أ¢â€Œإ’ **أ—آ©أ—â€™أ—â„¢أ—ع¯أ—â€‌:** {result}")
+            bot.send_message(message.chat.id, f"❌ **שים לב:** {result}")
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
-    markup = types.InlineKeyboardMarkup()
     url = f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}"
-    markup.add(types.InlineKeyboardButton("ظ‹ع؛â€‌آ± أ—آ¤أ—ع¾أ—â€” أ—ع¯أ—آ¨أ—آ أ—آ§ Web3", web_app=types.WebAppInfo(url)))
-        reply_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    reply_markup.add(types.KeyboardButton("🏦 פתח ארנק Web3", web_app=types.WebAppInfo(url)))
-    bot.send_message(message.chat.id, "💎 **SLH OS v2.0**\nהשתמש בכפתור למטה כדי לחבר ארנק ולקבל Airdrop.", reply_markup=reply_markup)
+    
+    # שימוש ב-ReplyKeyboardMarkup כדי לאפשר העברת מידע (sendData)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add(types.KeyboardButton("🏦 פתח ארנק Web3", web_app=types.WebAppInfo(url)))
+    
+    bot.send_message(
+        message.chat.id, 
+        "💎 **ברוך הבא ל-SLH OS v2.0**\n\nמערכת הבלוקצ'יין שלך מוכנה.\nלחץ על הכפתור למטה כדי לחבר את ארנק ה-Testnet שלך ולקבל 100 SLH.",
+        reply_markup=markup
+    )
 
 @app.post("/")
 async def process_webhook(request: Request):
-    update = telebot.types.Update.de_json(await request.json())
-    bot.process_new_updates([update])
-    return {"status": "ok"}
+    try:
+        json_data = await request.json()
+        update = telebot.types.Update.de_json(json_data)
+        bot.process_new_updates([update])
+        return {"status": "ok"} # תיקון הדיקשנרי כאן
+    except Exception as e:
+        logger.error(f"Webhook Error: {e}")
+        return {"status": "error"}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     bot.remove_webhook()
     bot.set_webhook(url=WEBHOOK_URL)
     uvicorn.run(app, host="0.0.0.0", port=port)
-
-

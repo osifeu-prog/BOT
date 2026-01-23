@@ -23,7 +23,7 @@ app = FastAPI()
 @app.get("/gui/wallet", response_class=HTMLResponse)
 def wallet_gui(user_id: str):
     balance, xp, rank, addr = wallet_logic.get_user_full_data(user_id)
-    # ×©×™×‍×•×© ×‘×،×•×’×¨×™×™×‌ ×›×¤×•×œ×™×‌ ×œ×‍× ×™×¢×ھ ×©×’×™×گ×ھ f-string
+    # أ—آ©أ—â„¢أ—â€چأ—â€¢أ—آ© أ—â€کأ—طŒأ—â€¢أ—â€™أ—آ¨أ—â„¢أ—â„¢أ—â€Œ أ—â€؛أ—آ¤أ—â€¢أ—إ“أ—â„¢أ—â€Œ أ—إ“أ—â€چأ—آ أ—â„¢أ—آ¢أ—ع¾ أ—آ©أ—â€™أ—â„¢أ—ع¯أ—ع¾ f-string
     html_content = f"""
     <!DOCTYPE html>
     <html lang="he" dir="rtl">
@@ -41,11 +41,11 @@ def wallet_gui(user_id: str):
     </head>
     <body>
         <div class="card">
-            <div style="font-size: 14px;">×™×ھ×¨×ھ SLH</div>
+            <div style="font-size: 14px;">أ—â„¢أ—ع¾أ—آ¨أ—ع¾ SLH</div>
             <div class="balance">{balance:,.2f}</div>
-            <div style="font-size: 11px; color: #666;">{addr if addr else "×گ×¨× ×§ ×œ×گ ×‍×—×•×‘×¨"}</div>
+            <div style="font-size: 11px; color: #666;">{addr if addr else "أ—ع¯أ—آ¨أ—آ أ—آ§ أ—إ“أ—ع¯ أ—â€چأ—â€”أ—â€¢أ—â€کأ—آ¨"}</div>
             
-            <button class="btn" onclick="connectTon()">ًں’ژ ×—×‘×¨ ×گ×¨× ×§ TON (Airdrop)</button>
+            <button class="btn" onclick="connectTon()">ظ‹ع؛â€™عک أ—â€”أ—â€کأ—آ¨ أ—ع¯أ—آ¨أ—آ أ—آ§ TON (Airdrop)</button>
             <div class="status">Testnet Mode Active</div>
         </div>
 
@@ -53,7 +53,7 @@ def wallet_gui(user_id: str):
             const webApp = window.Telegram.WebApp;
             webApp.ready();
             function connectTon() {{
-                // ×©×œ×™×—×ھ ×›×ھ×•×‘×ھ ×ک×،×ک ×œ×‘×•×ک
+                // أ—آ©أ—إ“أ—â„¢أ—â€”أ—ع¾ أ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾ أ—ع©أ—طŒأ—ع© أ—إ“أ—â€کأ—â€¢أ—ع©
                 const testWallet = "0:TEST_ADDR_" + Math.random().toString(36).substring(7);
                 webApp.sendData("ton_connect:" + testWallet);
             }}
@@ -70,16 +70,18 @@ def handle_webapp_data(message):
         wallet_addr = data.split(":")[1]
         success, result = wallet_logic.claim_airdrop(message.from_user.id, wallet_addr)
         if success:
-            bot.send_message(message.chat.id, f"âœ… **Airdrop ×‘×•×¦×¢!**\n\n×§×™×‘×œ×ھ {result} SLH ×¢×œ ×—×™×‘×•×¨ ×گ×¨× ×§ TON.\n×›×ھ×•×‘×ھ: {wallet_addr}", parse_mode="Markdown")
+            bot.send_message(message.chat.id, f"أ¢إ“â€¦ **Airdrop أ—â€کأ—â€¢أ—آ¦أ—آ¢!**\n\nأ—آ§أ—â„¢أ—â€کأ—إ“أ—ع¾ {result} SLH أ—آ¢أ—إ“ أ—â€”أ—â„¢أ—â€کأ—â€¢أ—آ¨ أ—ع¯أ—آ¨أ—آ أ—آ§ TON.\nأ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾: {wallet_addr}", parse_mode="Markdown")
         else:
-            bot.send_message(message.chat.id, f"â‌Œ **×©×’×™×گ×”:** {result}")
+            bot.send_message(message.chat.id, f"أ¢â€Œإ’ **أ—آ©أ—â€™أ—â„¢أ—ع¯أ—â€‌:** {result}")
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     markup = types.InlineKeyboardMarkup()
     url = f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}"
-    markup.add(types.InlineKeyboardButton("ًں”± ×¤×ھ×— ×گ×¨× ×§ Web3", web_app=types.WebAppInfo(url)))
-    bot.send_message(message.chat.id, "ًں’ژ **SLH OS v2.0**\n×‍×¢×¨×›×ھ ×”×‘×œ×•×§×¦'×™×™×ں ×©×œ×ڑ ×‍×•×›× ×”.", reply_markup=markup)
+    markup.add(types.InlineKeyboardButton("ظ‹ع؛â€‌آ± أ—آ¤أ—ع¾أ—â€” أ—ع¯أ—آ¨أ—آ أ—آ§ Web3", web_app=types.WebAppInfo(url)))
+        reply_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    reply_markup.add(types.KeyboardButton("🏦 פתח ארנק Web3", web_app=types.WebAppInfo(url)))
+    bot.send_message(message.chat.id, "💎 **SLH OS v2.0**\nהשתמש בכפתור למטה כדי לחבר ארנק ולקבל Airdrop.", reply_markup=reply_markup)
 
 @app.post("/")
 async def process_webhook(request: Request):
@@ -92,4 +94,5 @@ if __name__ == "__main__":
     bot.remove_webhook()
     bot.set_webhook(url=WEBHOOK_URL)
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 

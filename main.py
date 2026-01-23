@@ -1,67 +1,55 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import logging
 import sys
 import os
+import telebot
+from fastapi import FastAPI, Request
+from utils.config import TELEGRAM_TOKEN, WEBHOOK_URL
+from handlers import wallet_logic, saas, router, admin
+import uvicorn
 
-# ×”×’×“×¨×ھ ×œ×•×’×™×‌ ×‍×¤×•×¨×ک×ھ ×©×ھ×•×¤×™×¢ ×‘-Railway
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-logger.info("ًںڑ€ Starting SLH OS Debug Mode...")
-
-# ×ھ×™×§×•×ں ×”×“×¨×™×™×‘×¨ ×©×œ PostgreSQL (Monkey Patch)
-try:
-    import psycopg2_binary
-    import sys
-    sys.modules['psycopg2'] = psycopg2_binary
-    logger.info("âœ… Psycopg2 monkey patch applied successfully")
-except Exception as e:
-    logger.error(f"â‌Œ Failed to patch psycopg2: {e}")
-
-try:
-    logger.info("ًں“¦ Importing modules...")
-    import telebot
-    from fastapi import FastAPI, Request
-    from utils.config import TELEGRAM_TOKEN, WEBHOOK_URL
-    from handlers import wallet_logic, saas, router, admin
-    import uvicorn
-    logger.info("âœ… All modules imported successfully")
-except Exception as e:
-    logger.critical(f"ًں’¥ IMPORT ERROR: {e}", exc_info=True)
-    sys.exit(1)
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
 app = FastAPI()
 
-@app.on_event("startup")
-async def startup_event():
-    logger.info(f"ًںŒگ Setting Webhook to: {WEBHOOK_URL}")
-    try:
-        bot.remove_webhook()
-        bot.set_webhook(url=WEBHOOK_URL)
-        logger.info("âœ… Webhook set successfully")
-    except Exception as e:
-        logger.error(f"â‌Œ Webhook setup failed: {e}")
-
 @app.post("/")
 async def process_webhook(request: Request):
-    logger.debug("ًں“© Received webhook request")
-    json_string = await request.body()
-    update = telebot.types.Update.de_json(json_string.decode('utf-8'))
-    bot.process_new_updates([update])
-    return {"status": "ok"}
+    try:
+        json_data = await request.json()
+        update = telebot.types.Update.de_json(json_data)
+        # שים לב לשורה הזו - היא הקריטית!
+        bot.process_new_updates([update])
+        logger.info(f"✅ Processed update from user")
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"❌ Error processing webhook: {e}")
+        return {"status": "error"}
 
 @app.get("/")
 def health_check():
-    logger.debug("ًں’“ Health check pinged")
     return {"status": "Online"}
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    logger.info(f"ًں”¥ Uvicorn starting on port {port}")
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="debug")
+# ה-Handlers שלך
+@bot.message_handler(commands=['start'])
+def handle_start(message):
+    logger.info(f"🚀 Received /start from {message.from_user.id}")
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+    btn_wallet = telebot.types.InlineKeyboardButton('💰 הארנק שלי', callback_data='view_wallet')
+    btn_estate = telebot.types.InlineKeyboardButton('🏠 נדל"ן וריבונות', callback_data='real_estate')
+    markup.add(btn_wallet, btn_estate)
+    bot.reply_to(message, "💎 **SLH OS Core - Webhook Active**\nהמערכת מוכנה לפעולה.", parse_mode="HTML", reply_markup=markup)
 
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callbacks(call):
+    if call.data == 'view_wallet':
+        bot.send_message(call.message.chat.id, wallet_logic.show_wallet(call.from_user.id))
+    elif call.data == 'real_estate':
+        bot.send_message(call.message.chat.id, saas.get_support_info(), parse_mode="Markdown")
+
+if __name__ == "__main__":
+    bot.remove_webhook()
+    bot.set_webhook(url=WEBHOOK_URL)
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)

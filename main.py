@@ -1,57 +1,53 @@
-import telebot, os, logging
+# -*- coding: utf-8 -*-
+import telebot, os, logging, uvicorn
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from utils.config import *
 from handlers import wallet_logic
+from db.connection import init_db
 
-bot = telebot.TeleBot(TELEGRAM_TOKEN)
+bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
+app = FastAPI()
 
-@bot.message_handler(commands=['admin'])
-def admin_dashboard(message):
-    if str(message.from_user.id) != str(ADMIN_ID):
+@app.get("/gui/wallet", response_class=HTMLResponse)
+def wallet_gui(user_id: str):
+    balance, xp, rank, addr = wallet_logic.get_user_full_data(user_id)
+    txs = wallet_logic.get_last_transactions(user_id)
+    tx_items = "".join([f'<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #222;"><span>{t[1]}</span><span style="color:#d4af37">+{t[0]} SLH</span></div>' for t in txs])
+    
+    return f"""
+    <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>body{{background:#050505;color:white;font-family:sans-serif;text-align:center;padding:20px;}}
+    .card{{background:#111;padding:25px;border-radius:20px;border:1px solid #d4af37;}}
+    .balance{{font-size:40px;color:#d4af37;margin:10px 0;}}
+    .btn{{background:#d4af37;color:black;padding:15px;border-radius:10px;width:100%;font-weight:bold;border:none;}}</style>
+    </head><body>
+    <div class="card"><div style="opacity:0.6">Balance</div><div class="balance">{balance} SLH</div>
+    <button class="btn" onclick="window.Telegram.WebApp.close()">Close</button></div>
+    <div style="margin-top:20px;text-align:right"><h4>History</h4>{tx_items if tx_items else "No transactions"}</div>
+    </body></html>"""
+
+@bot.message_handler(commands=['start', 'setup', 'startall'])
+def handle_commands(message):
+    user_id = message.from_user.id
+    wallet_logic.register_user(user_id)
+    
+    if message.text in ['/setup', '/startall'] and str(user_id) == str(ADMIN_ID):
+        init_db()
+        bot.set_my_commands([telebot.types.BotCommand("start", "Open Wallet")])
+        bot.reply_to(message, "✅ System Synced & Ready!")
         return
-    
-    stats = wallet_logic.get_system_stats()
-    
-    dashboard_text = f"""
-💎 **SLH SaaS Admin Panel**
-----------------------------
-📊 **סטטיסטיקות:**
-- משתמשים: {stats['users']}
-- עסקאות: {stats['tx_count']}
-- יתרה במחזור: {stats['total_supply']} SLH
 
-⚙️ **הגדרות פעילות (Railway):**
-- בונוס הפניה: {REFERRAL_REWARD} SLH
-- סיכוי זכייה: {WIN_CHANCE_PERCENT}%
-- עלות הצצה: {PEEK_COST} SLH
-- מחיר שיעור: {LESSON_DB_PRICE}
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    url = f"{WEBHOOK_URL}/gui/wallet?user_id={user_id}"
+    markup.add(telebot.types.KeyboardButton("🏦 Open SLH Wallet", web_app=telebot.types.WebAppInfo(url)))
+    bot.send_message(message.chat.id, "💎 Welcome to SLH OS!", reply_markup=markup)
 
-🚀 **סטטוס מערכת:**
-- OpenAI API: {'✅' if OPENAI_API_KEY else '❌'}
-- Crypto Pay: {'✅' if CRYPTO_PAY_TOKEN else '❌'}
-- Debug Mode: {DEBUG_MODE}
-----------------------------
-השתמש ב- /config [KEY] [VALUE] כדי לעדכן (זמנית)
-או עדכן ב-Railway לשינוי קבוע.
-"""
-    bot.send_message(message.chat.id, dashboard_text)
-
-# פקודה להרצת בדיקת עשן ידנית
-@bot.message_handler(commands=['smoke_test'])
-def smoke_test_cmd(message):
-    if str(message.from_user.id) == str(ADMIN_ID):
-        results = []
-        # בדיקת DB
-        try:
-            wallet_logic.get_system_stats()
-            results.append("✅ Database: Connected")
-        except: results.append("❌ Database: Failed")
-        
-        # בדיקת סנכרון משתנים
-        if REFERRAL_REWARD > 0: results.append("✅ Config: Synced")
-        else: results.append("❌ Config: Missing Variables")
-        
-        bot.reply_to(message, "💨 **תוצאות הרצת עשן:**\n" + "\n".join(results))
+@app.post("/")
+async def process_webhook(request: Request):
+    update = telebot.types.Update.de_json(await request.json())
+    bot.process_new_updates([update])
+    return {{"status": "ok"}}
 
 if __name__ == "__main__":
-    print("🚀 Starting Bot in Admin Mode...")
-    bot.infinity_polling()
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))

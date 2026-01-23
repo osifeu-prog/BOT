@@ -23,7 +23,7 @@ def claim_daily(user_id):
         conn = get_conn()
         cursor = conn.cursor()
         
-        # בדיקה מתי נלקח לאחרונה
+        # ×‘×“×™×§×” ×‍×ھ×™ × ×œ×§×— ×œ×گ×—×¨×•× ×”
         cursor.execute("SELECT last_daily FROM users WHERE user_id = %s", (str(user_id),))
         last_claimed = cursor.fetchone()[0]
         
@@ -32,16 +32,17 @@ def claim_daily(user_id):
             hours, remainder = divmod(time_left.seconds, 3600)
             minutes, _ = divmod(remainder, 60)
             conn.close()
-            return False, f"{hours} שעות ו-{minutes} דקות"
+            return False, f"{hours} ×©×¢×•×ھ ×•-{minutes} ×“×§×•×ھ"
 
-        # הגרלת סכום ועדכון
+        # ×”×’×¨×œ×ھ ×،×›×•×‌ ×•×¢×“×›×•×ں
         bonus = random.randint(10, 50)
         cursor.execute("UPDATE users SET balance = balance + %s, xp = xp + 5, last_daily = %s WHERE user_id = %s", (bonus, datetime.now(), str(user_id)))
         cursor.execute("INSERT INTO transactions (receiver_id, amount, type) VALUES (%s, %s, 'daily_bonus')", (str(user_id), bonus))
         
         conn.commit()
         conn.close()
-        return True, bonus
+        logger.info(f'User {user_id} claimed bonus: {bonus}'); return True, bonus
     except Exception as e:
         logger.error(f"Error claiming daily for {user_id}: {e}")
         return None, str(e)
+

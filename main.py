@@ -10,7 +10,12 @@ from utils.config import TELEGRAM_TOKEN, WEBHOOK_URL
 from handlers import wallet_logic
 import uvicorn
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - [%(levelname)s] - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("SLH_CORE")s - [%(levelname)s] - %(message)s')
 logger = logging.getLogger("SLH_CORE")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
@@ -37,14 +42,14 @@ def wallet_gui(user_id: str):
     </head>
     <body>
         <div class="card">
-            <div style="color: #888; font-size: 12px;">×™×ھ×¨×” ×‘×—×©×‘×•×ں</div>
+            <div style="color: #888; font-size: 12px;">أ—â„¢أ—ع¾أ—آ¨أ—â€‌ أ—â€کأ—â€”أ—آ©أ—â€کأ—â€¢أ—ع؛</div>
             <div class="balance">{balance:,.2f} SLH</div>
             <div style="font-size: 11px; opacity: 0.6;">{addr}</div>
             
             <div class="btn-group">
-                <button class="btn btn-main" onclick="scanQR()">ًں”چ ×،×¨×•×§ QR ×œ×”×¢×‘×¨×”</button>
-                <button class="btn" onclick="showAddress()">ًں“¥ ×”×›×ھ×•×‘×ھ ×©×œ×™</button>
-                <button class="btn" onclick="window.Telegram.WebApp.close()">âœ–ï¸ڈ ×،×’×•×¨</button>
+                <button class="btn btn-main" onclick="scanQR()">ظ‹ع؛â€‌ع† أ—طŒأ—آ¨أ—â€¢أ—آ§ QR أ—إ“أ—â€‌أ—آ¢أ—â€کأ—آ¨أ—â€‌</button>
+                <button class="btn" onclick="showAddress()">ظ‹ع؛â€œآ¥ أ—â€‌أ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾ أ—آ©أ—إ“أ—â„¢</button>
+                <button class="btn" onclick="window.Telegram.WebApp.close()">أ¢إ“â€“أ¯آ¸عˆ أ—طŒأ—â€™أ—â€¢أ—آ¨</button>
             </div>
         </div>
 
@@ -53,14 +58,14 @@ def wallet_gui(user_id: str):
             webApp.ready();
 
             function scanQR() {{
-                webApp.showScanQrPopup({{ text: "×،×¨×•×§ ×›×ھ×•×‘×ھ ×گ×¨× ×§ ×œ×”×¢×‘×¨×”" }}, function(data) {{
-                    webApp.sendData("transfer:" + data); // ×©×•×œ×— ×گ×ھ ×”×›×ھ×•×‘×ھ ×—×–×¨×” ×œ×‘×•×ک
+                webApp.showScanQrPopup({{ text: "أ—طŒأ—آ¨أ—â€¢أ—آ§ أ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾ أ—ع¯أ—آ¨أ—آ أ—آ§ أ—إ“أ—â€‌أ—آ¢أ—â€کأ—آ¨أ—â€‌" }}, function(data) {{
+                    webApp.sendData("transfer:" + data); // أ—آ©أ—â€¢أ—إ“أ—â€” أ—ع¯أ—ع¾ أ—â€‌أ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾ أ—â€”أ—â€“أ—آ¨أ—â€‌ أ—إ“أ—â€کأ—â€¢أ—ع©
                     webApp.close();
                 }});
             }}
 
             function showAddress() {{
-                webApp.showAlert("×›×ھ×•×‘×ھ ×”×گ×¨× ×§ ×©×œ×ڑ ×”×™×گ:\n{addr}");
+                webApp.showAlert("أ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾ أ—â€‌أ—ع¯أ—آ¨أ—آ أ—آ§ أ—آ©أ—إ“أ—ع‘ أ—â€‌أ—â„¢أ—ع¯:\n{addr}");
             }}
         </script>
     </body>
@@ -74,15 +79,15 @@ def handle_webapp_data(message):
         data = message.web_app_data.data
         if data.startswith("transfer:"):
             target_addr = data.split(":")[1]
-            bot.reply_to(message, f"ًں’¸ **×”×¢×‘×¨×” ×‘×‘×™×¦×•×¢...**\n×™×¢×“: {target_addr}\n×›×‍×” ×ھ×¨×¦×” ×œ×”×¢×‘×™×¨?")
-            # ×›×گ×ں × ×‍×©×™×ڑ ×œ×œ×•×’×™×§×ھ ×”×ھ×©×œ×•×‌
+            bot.reply_to(message, f"ظ‹ع؛â€™آ¸ **أ—â€‌أ—آ¢أ—â€کأ—آ¨أ—â€‌ أ—â€کأ—â€کأ—â„¢أ—آ¦أ—â€¢أ—آ¢...**\nأ—â„¢أ—آ¢أ—â€œ: {target_addr}\nأ—â€؛أ—â€چأ—â€‌ أ—ع¾أ—آ¨أ—آ¦أ—â€‌ أ—إ“أ—â€‌أ—آ¢أ—â€کأ—â„¢أ—آ¨?")
+            # أ—â€؛أ—ع¯أ—ع؛ أ—آ أ—â€چأ—آ©أ—â„¢أ—ع‘ أ—إ“أ—إ“أ—â€¢أ—â€™أ—â„¢أ—آ§أ—ع¾ أ—â€‌أ—ع¾أ—آ©أ—إ“أ—â€¢أ—â€Œ
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     markup = types.InlineKeyboardMarkup()
     url = f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}"
-    markup.add(types.InlineKeyboardButton("ًں”± ×¤×ھ×— ×گ×¨× ×§ ×¤×¨×™×‍×™×•×‌", web_app=types.WebAppInfo(url)))
-    bot.send_message(message.chat.id, "ًں’ژ **SLH OS Dashboard**", reply_markup=markup)
+    markup.add(types.InlineKeyboardButton("ظ‹ع؛â€‌آ± أ—آ¤أ—ع¾أ—â€” أ—ع¯أ—آ¨أ—آ أ—آ§ أ—آ¤أ—آ¨أ—â„¢أ—â€چأ—â„¢أ—â€¢أ—â€Œ", web_app=types.WebAppInfo(url)))
+    bot.send_message(message.chat.id, "ظ‹ع؛â€™عک **SLH OS Dashboard**", reply_markup=markup)
 
 @app.post("/")
 async def process_webhook(request: Request):
@@ -102,8 +107,9 @@ def daily_cmd(message):
     success, result = wallet_logic.claim_daily(user_id)
     
     if success:
-        bot.reply_to(message, f"🎁 **בונוס יומי התקבל!**\n\nהרווחת {result} SLH ו-5 XP.\nבוא מחר שוב!")
+        bot.reply_to(message, f"ًںژپ **×‘×•× ×•×، ×™×•×‍×™ ×”×ھ×§×‘×œ!**\n\n×”×¨×•×•×—×ھ {result} SLH ×•-5 XP.\n×‘×•×گ ×‍×—×¨ ×©×•×‘!")
     elif success is False:
-        bot.reply_to(message, f"⏳ **מוקדם מדי!**\n\nתוכל לקבל את הבונוס הבא בעוד {result}.")
+        bot.reply_to(message, f"âڈ³ **×‍×•×§×“×‌ ×‍×“×™!**\n\n×ھ×•×›×œ ×œ×§×‘×œ ×گ×ھ ×”×‘×•× ×•×، ×”×‘×گ ×‘×¢×•×“ {result}.")
     else:
-        bot.reply_to(message, "❌ שגיאה בבסיס הנתונים. וודא שהרצת את פקודת ה-SQL.")
+        bot.reply_to(message, "â‌Œ ×©×’×™×گ×” ×‘×‘×،×™×، ×”× ×ھ×•× ×™×‌. ×•×•×“×گ ×©×”×¨×¦×ھ ×گ×ھ ×¤×§×•×“×ھ ×”-SQL.")
+

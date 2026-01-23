@@ -14,7 +14,7 @@ def init_db():
     conn = get_conn()
     cursor = conn.cursor()
     
-    # ×¤×§×•×“×•×ھ ×”×©×“×¨×•×’
+    # أ—آ¤أ—آ§أ—â€¢أ—â€œأ—â€¢أ—ع¾ أ—â€‌أ—آ©أ—â€œأ—آ¨أ—â€¢أ—â€™
     commands = [
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS rank TEXT DEFAULT 'Starter'",
@@ -34,6 +34,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# ×”×¨×¦×” ×گ×•×ک×•×‍×ک×™×ھ ×©×œ ×”×‍×™×’×¨×¦×™×” ×‘×›×œ ×¤×¢×‌ ×©×”×‍×•×“×•×œ × ×ک×¢×ں
+# أ—â€‌أ—آ¨أ—آ¦أ—â€‌ أ—ع¯أ—â€¢أ—ع©أ—â€¢أ—â€چأ—ع©أ—â„¢أ—ع¾ أ—آ©أ—إ“ أ—â€‌أ—â€چأ—â„¢أ—â€™أ—آ¨أ—آ¦أ—â„¢أ—â€‌ أ—â€کأ—â€؛أ—إ“ أ—آ¤أ—آ¢أ—â€Œ أ—آ©أ—â€‌أ—â€چأ—â€¢أ—â€œأ—â€¢أ—إ“ أ—آ أ—ع©أ—آ¢أ—ع؛
 init_db()
+
 

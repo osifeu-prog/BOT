@@ -23,7 +23,7 @@ def claim_daily(user_id):
         conn = get_conn()
         cursor = conn.cursor()
         
-        # أ—â€کأ—â€œأ—â„¢أ—آ§أ—â€‌ أ—â€چأ—ع¾أ—â„¢ أ—آ أ—إ“أ—آ§أ—â€” أ—إ“أ—ع¯أ—â€”أ—آ¨أ—â€¢أ—آ أ—â€‌
+        # ط£â€”أ¢â‚¬ع©ط£â€”أ¢â‚¬إ“ط£â€”أ¢â€‍آ¢ط£â€”ط¢آ§ط£â€”أ¢â‚¬â€Œ ط£â€”أ¢â‚¬ع†ط£â€”ط¹آ¾ط£â€”أ¢â€‍آ¢ ط£â€”ط¢آ ط£â€”ط¥â€œط£â€”ط¢آ§ط£â€”أ¢â‚¬â€‌ ط£â€”ط¥â€œط£â€”ط¹آ¯ط£â€”أ¢â‚¬â€‌ط£â€”ط¢آ¨ط£â€”أ¢â‚¬آ¢ط£â€”ط¢آ ط£â€”أ¢â‚¬â€Œ
         cursor.execute("SELECT last_daily FROM users WHERE user_id = %s", (str(user_id),))
         last_claimed = cursor.fetchone()[0]
         
@@ -32,9 +32,9 @@ def claim_daily(user_id):
             hours, remainder = divmod(time_left.seconds, 3600)
             minutes, _ = divmod(remainder, 60)
             conn.close()
-            return False, f"{hours} أ—آ©أ—آ¢أ—â€¢أ—ع¾ أ—â€¢-{minutes} أ—â€œأ—آ§أ—â€¢أ—ع¾"
+            return False, f"{hours} ط£â€”ط¢آ©ط£â€”ط¢آ¢ط£â€”أ¢â‚¬آ¢ط£â€”ط¹آ¾ ط£â€”أ¢â‚¬آ¢-{minutes} ط£â€”أ¢â‚¬إ“ط£â€”ط¢آ§ط£â€”أ¢â‚¬آ¢ط£â€”ط¹آ¾"
 
-        # أ—â€‌أ—â€™أ—آ¨أ—إ“أ—ع¾ أ—طŒأ—â€؛أ—â€¢أ—â€Œ أ—â€¢أ—آ¢أ—â€œأ—â€؛أ—â€¢أ—ع؛
+        # ط£â€”أ¢â‚¬â€Œط£â€”أ¢â‚¬â„¢ط£â€”ط¢آ¨ط£â€”ط¥â€œط£â€”ط¹آ¾ ط£â€”ط·إ’ط£â€”أ¢â‚¬ط›ط£â€”أ¢â‚¬آ¢ط£â€”أ¢â‚¬إ’ ط£â€”أ¢â‚¬آ¢ط£â€”ط¢آ¢ط£â€”أ¢â‚¬إ“ط£â€”أ¢â‚¬ط›ط£â€”أ¢â‚¬آ¢ط£â€”ط¹ط›
         bonus = random.randint(10, 50)
         cursor.execute("UPDATE users SET balance = balance + %s, xp = xp + 5, last_daily = %s WHERE user_id = %s", (bonus, datetime.now(), str(user_id)))
         cursor.execute("INSERT INTO transactions (receiver_id, amount, type) VALUES (%s, %s, 'daily_bonus')", (str(user_id), bonus))
@@ -100,7 +100,7 @@ def claim_airdrop(user_id, wallet_addr):
         return False, "??? ????? ???? ????!"
 
     # ????? ????? ???? ?????? ?????
-    airdrop_amount = 100.0
+    airdrop_amount = 5.0
     cursor.execute(
         "UPDATE users SET wallet_address = %s, balance = balance + %s, xp = xp + 50 WHERE user_id = %s",
         (wallet_addr, airdrop_amount, str(user_id))
@@ -112,4 +112,5 @@ def claim_airdrop(user_id, wallet_addr):
     conn.commit()
     conn.close()
     return True, airdrop_amount
+
 

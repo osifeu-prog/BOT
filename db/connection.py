@@ -1,28 +1,30 @@
-import psycopg2
 import os
-from utils.config import DATABASE_URL
+import psycopg2
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def get_conn():
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    # בדיקה אם אנחנו ב-Railway (שם הכתובת מתחילה ב-postgres://)
+    if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    
     return psycopg2.connect(DATABASE_URL)
 
 def init_db():
     conn = get_conn()
-    cursor = conn.cursor()
-
-    commands = [
-        "CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, balance REAL DEFAULT 0.0, xp INTEGER DEFAULT 0, rank TEXT DEFAULT 'Beginner', wallet_address TEXT)",
-        "CREATE TABLE IF NOT EXISTS transactions (id SERIAL PRIMARY KEY, user_id TEXT, amount REAL, type TEXT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, block_hash TEXT)",
-        "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)",
-        # פקודת בטיחות: מוודאת שהעמודה קיימת גם אם הטבלה נוצרה פעם בלי
-        "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-    ]
-
-    for cmd in commands:
-        try:
-            cursor.execute(cmd)
-        except:
-            conn.rollback()
-            continue
-
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id TEXT PRIMARY KEY,
+            balance FLOAT DEFAULT 0,
+            xp INTEGER DEFAULT 0,
+            rank TEXT DEFAULT 'Beginner',
+            wallet_address TEXT,
+            referrer_id TEXT
+        )
+    """)
     conn.commit()
+    cur.close()
     conn.close()

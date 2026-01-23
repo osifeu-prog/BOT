@@ -7,100 +7,79 @@ from utils.config import TELEGRAM_TOKEN, WEBHOOK_URL, ADMIN_ID
 from handlers import wallet_logic
 from db.connection import get_conn, init_db
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
-logger = logging.getLogger("SLH_SaaS")
-
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
 app = FastAPI()
 
-def force_db_fix():
-    """פונקציה שמוודאת שהעמודה timestamp קיימת בטבלה"""
-    conn = get_conn()
-    cur = conn.cursor()
-    try:
-        cur.execute("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-        conn.commit()
-        logger.info("✅ Database Migration: timestamp column verified.")
-    except Exception as e:
-        logger.error(f"❌ DB Fix Failed: {e}")
-    finally:
-        conn.close()
-
 @app.get("/gui/wallet", response_class=HTMLResponse)
 def wallet_gui(user_id: str):
-    try:
-        balance, xp, rank, addr = wallet_logic.get_user_full_data(user_id)
-        txs = wallet_logic.get_last_transactions(user_id)
+    balance, xp, rank, addr = wallet_logic.get_user_full_data(user_id)
+    txs = wallet_logic.get_last_transactions(user_id)
+    
+    # בדיקה אם המשתמש כבר עשה Claim (נניח ש-addr קיים = בוצע)
+    claim_button = ""
+    if not addr:
+        claim_button = f'''
+        <div style="background: rgba(212,175,55,0.1); border: 1px dashed #d4af37; padding: 15px; border-radius: 15px; margin-top: 20px;">
+            <p style="color: #d4af37; font-size: 14px; margin-top: 0;">🎁 אירדרופ זמין עבורך!</p>
+            <button class="btn" onclick="claimAirdrop()">Claim Free SLH</button>
+        </div>
+        '''
+
+    tx_html = "".join([f'<div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #222;">'
+                       f'<span style="color:#888;">{t[1]}</span>'
+                       f'<span style="color:#d4af37; font-weight:bold;">+{t[0]} SLH</span></div>' for t in txs])
+
+    return f"""
+    <!DOCTYPE html>
+    <html lang="he" dir="rtl">
+    <head>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <style>
+            body {{ background: #050505; color: #fff; font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 20px; }}
+            .header {{ text-align: center; margin-bottom: 30px; }}
+            .balance-card {{ background: linear-gradient(135deg, #1a1a1a 0%, #000 100%); border: 1px solid #333; border-radius: 25px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; overflow: hidden; }}
+            .balance-card::after {{ content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(212,175,55,0.05) 0%, transparent 70%); }}
+            .label {{ color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }}
+            .amount {{ font-size: 45px; font-weight: 800; color: #d4af37; margin: 10px 0; }}
+            .btn {{ background: #d4af37; color: #000; border: none; padding: 15px 25px; border-radius: 15px; width: 100%; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s; }}
+            .btn:active {{ transform: scale(0.97); }}
+            .history {{ margin-top: 30px; }}
+            .history-title {{ font-size: 18px; margin-bottom: 15px; color: #d4af37; border-right: 3px solid #d4af37; padding-right: 10px; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2 style="margin:0; font-size:22px;">SLH Digital Wallet</h2>
+        </div>
         
-        tx_items = "".join([f'<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #222;"><span>{t[1]}</span><span style="color:#d4af37">+{t[0]} SLH</span></div>' for t in txs])
-        if not tx_items: tx_items = '<div style="padding:20px;color:#666;">אין עסקאות עדיין</div>'
+        <div class="balance-card">
+            <div class="label">Balance</div>
+            <div class="amount">{balance:,.2f} <span style="font-size:18px;">SLH</span></div>
+            <div style="font-size:11px; color:#555; word-break:break-all;">{addr if addr else "כתובת ארנק לא מחוברת"}</div>
+        </div>
 
-        return f"""
-        <!DOCTYPE html>
-        <html lang="he" dir="rtl">
-        <head>
-            <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script src="https://telegram.org/js/telegram-web-app.js"></script>
-            <style>
-                body {{ background:#0b0b0b; color:#fff; font-family:sans-serif; text-align:center; padding:20px; }}
-                .card {{ border:1px solid #d4af37; border-radius:20px; padding:25px; background:linear-gradient(145deg, #1a1a1a, #000); }}
-                .balance {{ font-size:42px; color:#d4af37; margin:15px 0; font-weight:800; }}
-                .btn {{ background:#d4af37; color:#000; border:none; padding:15px; border-radius:12px; width:100%; font-weight:bold; cursor:pointer; }}
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <div style="opacity:0.6;">Total Balance</div>
-                <div class="balance">{balance:,.2f} SLH</div>
-                <button class="btn" onclick="window.Telegram.WebApp.close()">סגור ארנק</button>
-            </div>
-            <div style="margin-top:20px; text-align:right;">
-                <h4>פעולות אחרונות</h4>
-                <div style="background:#111; border-radius:15px;">{tx_items}</div>
-            </div>
-            <script>window.Telegram.WebApp.ready(); window.Telegram.WebApp.expand();</script>
-        </body>
-        </html>
-        """
-    except Exception as e:
-        logger.error(f"GUI Error: {e}")
-        return f"<html><body>Error loading wallet. Admin notified.</body></html>"
+        {claim_button}
 
-@bot.message_handler(commands=['install'])
-def install_cmd(message):
-    if str(message.from_user.id) == str(ADMIN_ID):
-        init_db()
-        force_db_fix()
-        bot.reply_to(message, "✅ המערכת הותקנה מחדש ובסיס הנתונים סונכרן.")
+        <div class="history">
+            <div class="history-title">פעולות אחרונות</div>
+            <div style="background:#111; border-radius:20px; padding:5px;">{tx_html if tx_html else '<p style="padding:20px; color:#444;">אין תנועות עדיין</p>'}</div>
+        </div>
 
-@bot.message_handler(commands=['send'])
-def send_coins(message):
-    if str(message.from_user.id) == str(ADMIN_ID):
-        try:
-            _, target_id, amount = message.text.split()
-            success, msg = wallet_logic.manual_transfer(target_id, float(amount))
-            bot.reply_to(message, f"💸 {msg}")
-        except:
-            bot.reply_to(message, "❌ פורמט: /send [ID] [AMOUNT]")
+        <script>
+            const tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
 
-@bot.message_handler(commands=['start'])
-def handle_start(message):
-    wallet_logic.register_user(message.from_user.id)
-    url = f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}"
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(types.KeyboardButton("🏦 פתח ארנק Web3", web_app=types.WebAppInfo(url)))
-    bot.send_message(message.chat.id, "💎 ברוך הבא ל-SLH OS!", reply_markup=markup)
-
-@app.on_event("startup")
-async def on_startup():
-    force_db_fix()
-    bot.set_my_commands([types.BotCommand("start", "🚀 פתח ארנק"), types.BotCommand("install", "⚙️ התקנה")])
-
-@app.post("/")
-async def process_webhook(request: Request):
-    update = telebot.types.Update.de_json(await request.json())
-    bot.process_new_updates([update])
-    return {"status": "ok"}
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+            function claimAirdrop() {{
+                tg.showConfirm("האם לחבר ארנק ולקבל אירדרופ?", function(ok) {{
+                    if (ok) {{
+                        // שליחת כתובת ארנק דמו לטובת הבדיקה
+                        tg.sendData("ton_connect:UQCr743gEr_nqV_0SBkSp3CtYS_15R3LDLBvLmKeEv7XdGvp");
+                    }}
+                }});
+            }}
+        </script>
+    </body>
+    </html>
+    """

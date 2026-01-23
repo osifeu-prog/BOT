@@ -36,36 +36,50 @@ async def wallet_gui(user_id: str):
         </div>
     </body></html>"""
 
+@bot.message_handler(commands=['send'])
+def send_slh(message):
+    try:
+        parts = message.text.split()
+        if len(parts) < 3:
+            bot.reply_to(message, "💡 Usage: `/send [user_id] [amount]`\nExample: `/send 123456 50`", parse_mode="Markdown")
+            return
+        
+        receiver_id, amount = parts[1], parts[2]
+        success, feedback = wallet_logic.transfer_funds(message.from_user.id, receiver_id, amount)
+        
+        if success:
+            bot.reply_to(message, f"✅ Sent {amount} SLH to `{receiver_id}`", parse_mode="Markdown")
+            # עדכון המקבל (אם הבוט בשימוש אצלו)
+            try: bot.send_message(receiver_id, f"🎁 You received {amount} SLH from `{message.from_user.id}`!")
+            except: pass
+        else:
+            bot.reply_to(message, f"❌ Transfer failed: {feedback}")
+    except:
+        bot.reply_to(message, "❌ Invalid format.")
+
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
     if str(message.from_user.id) != ADMIN_ID: return
     total_supply, total_users = wallet_logic.get_economy_stats()
-    bot.reply_to(message, f"📊 **Economy Status**\n\nUsers: {total_users}\nSupply: {total_supply:,.2f} SLH\n\nUse `/mint [id] [amount]` to issue.")
+    bot.reply_to(message, f"📊 **Economy Status**\n\nUsers: {total_users}\nSupply: {total_supply:,.2f} SLH")
 
 @bot.message_handler(commands=['mint'])
 def mint_coins(message):
     if str(message.from_user.id) != ADMIN_ID: return
     try:
-        parts = message.text.split()
-        target_id, amount = parts[1], parts[2]
+        _, target_id, amount = message.text.split()
         if wallet_logic.mint_to_user(target_id, amount):
-            bot.reply_to(message, f"✅ Successfully minted {amount} SLH to {target_id}")
-        else:
-            bot.reply_to(message, "❌ User not found.")
-    except:
-        bot.reply_to(message, "Format: `/mint [id] [amount]`")
+            bot.reply_to(message, f"✅ Minted {amount} SLH to {target_id}")
+        else: bot.reply_to(message, "❌ User not found.")
+    except: bot.reply_to(message, "Format: `/mint [id] [amount]`")
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    user_id = message.from_user.id
-    args = message.text.split()
-    referrer = args[1] if len(args) > 1 else None
-    wallet_logic.register_user(user_id, referrer)
-    
+    wallet_logic.register_user(message.from_user.id)
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    wallet_url = f"{WEBHOOK_URL}/gui/wallet?user_id={user_id}"
+    wallet_url = f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}"
     markup.add(telebot.types.KeyboardButton("💰 My Wallet", web_app=telebot.types.WebAppInfo(wallet_url)))
-    bot.send_message(message.chat.id, "💎 **SLH OS Activated**\n\nManage your assets and track global supply.", reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(message.chat.id, "💎 **SLH OS Activated**\n\nUse `/send [id] [amount]` to transfer SLH.", reply_markup=markup, parse_mode="Markdown")
 
 @app.post("/")
 async def process_webhook(request: Request):

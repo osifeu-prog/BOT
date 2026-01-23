@@ -23,7 +23,7 @@ app = FastAPI()
 @app.get("/gui/wallet", response_class=HTMLResponse)
 def wallet_gui(user_id: str):
     balance, xp, rank, addr = wallet_logic.get_user_full_data(user_id)
-    # שימוש בסוגריים כפולים למניעת שגיאת f-string
+    # ×©×™×‍×•×© ×‘×،×•×’×¨×™×™×‌ ×›×¤×•×œ×™×‌ ×œ×‍× ×™×¢×ھ ×©×’×™×گ×ھ f-string
     html_content = f"""
     <!DOCTYPE html>
     <html lang="he" dir="rtl">
@@ -41,11 +41,11 @@ def wallet_gui(user_id: str):
     </head>
     <body>
         <div class="card">
-            <div style="font-size: 14px;">יתרת SLH</div>
+            <div style="font-size: 14px;">×™×ھ×¨×ھ SLH</div>
             <div class="balance">{balance:,.2f}</div>
-            <div style="font-size: 11px; color: #666;">{addr if addr else "ארנק לא מחובר"}</div>
+            <div style="font-size: 11px; color: #666;">{addr if addr else "×گ×¨× ×§ ×œ×گ ×‍×—×•×‘×¨"}</div>
             
-            <button class="btn" onclick="connectTon()">💎 חבר ארנק TON (Airdrop)</button>
+            <button class="btn" onclick="connectTon()">ًں’ژ ×—×‘×¨ ×گ×¨× ×§ TON (Airdrop)</button>
             <div class="status">Testnet Mode Active</div>
         </div>
 
@@ -53,7 +53,7 @@ def wallet_gui(user_id: str):
             const webApp = window.Telegram.WebApp;
             webApp.ready();
             function connectTon() {{
-                // שליחת כתובת טסט לבוט
+                // ×©×œ×™×—×ھ ×›×ھ×•×‘×ھ ×ک×،×ک ×œ×‘×•×ک
                 const testWallet = "0:TEST_ADDR_" + Math.random().toString(36).substring(7);
                 webApp.sendData("ton_connect:" + testWallet);
             }}
@@ -70,25 +70,26 @@ def handle_webapp_data(message):
         wallet_addr = data.split(":")[1]
         success, result = wallet_logic.claim_airdrop(message.from_user.id, wallet_addr)
         if success:
-            bot.send_message(message.chat.id, f"✅ **Airdrop בוצע!**\n\nקיבלת {result} SLH על חיבור ארנק TON.\nכתובת: {wallet_addr}", parse_mode="Markdown")
+            bot.send_message(message.chat.id, f"âœ… **Airdrop ×‘×•×¦×¢!**\n\n×§×™×‘×œ×ھ {result} SLH ×¢×œ ×—×™×‘×•×¨ ×گ×¨× ×§ TON.\n×›×ھ×•×‘×ھ: {wallet_addr}", parse_mode="Markdown")
         else:
-            bot.send_message(message.chat.id, f"❌ **שגיאה:** {result}")
+            bot.send_message(message.chat.id, f"â‌Œ **×©×’×™×گ×”:** {result}")
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     markup = types.InlineKeyboardMarkup()
     url = f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}"
-    markup.add(types.InlineKeyboardButton("🔱 פתח ארנק Web3", web_app=types.WebAppInfo(url)))
-    bot.send_message(message.chat.id, "💎 **SLH OS v2.0**\nמערכת הבלוקצ'יין שלך מוכנה.", reply_markup=markup)
+    markup.add(types.InlineKeyboardButton("ًں”± ×¤×ھ×— ×گ×¨× ×§ Web3", web_app=types.WebAppInfo(url)))
+    bot.send_message(message.chat.id, "ًں’ژ **SLH OS v2.0**\n×‍×¢×¨×›×ھ ×”×‘×œ×•×§×¦'×™×™×ں ×©×œ×ڑ ×‍×•×›× ×”.", reply_markup=markup)
 
 @app.post("/")
 async def process_webhook(request: Request):
     update = telebot.types.Update.de_json(await request.json())
     bot.process_new_updates([update])
-    return {{"status": "ok"}}
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     bot.remove_webhook()
     bot.set_webhook(url=WEBHOOK_URL)
     uvicorn.run(app, host="0.0.0.0", port=port)
+

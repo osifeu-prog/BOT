@@ -10,7 +10,7 @@ from utils.config import TELEGRAM_TOKEN, WEBHOOK_URL
 from handlers import wallet_logic, saas, router, admin, ai_agent
 import uvicorn
 
-# أ—â€‌أ—â€™أ—â€œأ—آ¨أ—ع¾ أ—إ“أ—â€¢أ—â€™أ—â„¢أ—â€Œ أ—â€چأ—آ§أ—آ¦أ—â€¢أ—آ¢أ—â„¢أ—ع¾ أ—â€¢أ—ع¾أ—آ§أ—â„¢أ—آ أ—â€‌
+# ط£â€”أ¢â‚¬â€Œط£â€”أ¢â‚¬â„¢ط£â€”أ¢â‚¬إ“ط£â€”ط¢آ¨ط£â€”ط¹آ¾ ط£â€”ط¥â€œط£â€”أ¢â‚¬آ¢ط£â€”أ¢â‚¬â„¢ط£â€”أ¢â€‍آ¢ط£â€”أ¢â‚¬إ’ ط£â€”أ¢â‚¬ع†ط£â€”ط¢آ§ط£â€”ط¢آ¦ط£â€”أ¢â‚¬آ¢ط£â€”ط¢آ¢ط£â€”أ¢â€‍آ¢ط£â€”ط¹آ¾ ط£â€”أ¢â‚¬آ¢ط£â€”ط¹آ¾ط£â€”ط¢آ§ط£â€”أ¢â€‍آ¢ط£â€”ط¢آ ط£â€”أ¢â‚¬â€Œ
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s',
@@ -21,7 +21,7 @@ logger = logging.getLogger("SLH_CORE")
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
 @bot.middleware_handler(update_types=['message'])
 def log_incoming_messages(bot_instance, message):
-    logger.info(f"ًں“© Incoming: UserID: {message.from_user.id} | Text: {message.text}")
+    logger.info(f"ظ‹ع؛â€œآ© Incoming: UserID: {message.from_user.id} | Text: {message.text}")
 app = FastAPI()
 
 @app.get("/gui/wallet", response_class=HTMLResponse)
@@ -44,12 +44,22 @@ def wallet_gui(user_id: str):
 </head>
     <body>
         <div class="card">
-            <div style="color: #888; font-size: 12px;">أ—â„¢أ—ع¾أ—آ¨أ—â€‌ أ—â€کأ—â€”أ—آ©أ—â€کأ—â€¢أ—ع؛</div>
+            <div style="color: #888; font-size: 12px;">ط£â€”أ¢â€‍آ¢ط£â€”ط¹آ¾ط£â€”ط¢آ¨ط£â€”أ¢â‚¬â€Œ ط£â€”أ¢â‚¬ع©ط£â€”أ¢â‚¬â€‌ط£â€”ط¢آ©ط£â€”أ¢â‚¬ع©ط£â€”أ¢â‚¬آ¢ط£â€”ط¹ط›</div>
             <div class="balance">{balance:,.2f} SLH</div>
             <div style="font-size: 11px; opacity: 0.6;">{addr}</div>
-            <button class="btn" onclick="window.Telegram.WebApp.close()">أ—طŒأ—â€™أ—â€¢أ—آ¨</button>
+            <button class="btn" onclick="window.Telegram.WebApp.close()">ط£â€”ط·إ’ط£â€”أ¢â‚¬â„¢ط£â€”أ¢â‚¬آ¢ط£â€”ط¢آ¨</button>
         </div>
-        <script>window.Telegram.WebApp.ready();</script>
+                <script>
+            const webApp = window.Telegram.WebApp;
+            webApp.ready();
+
+            async function connectTon() {
+                // הדמיית חיבור ארנק לצורך הבדיקה הראשונית (נשתמש בכתובת טסט)
+                const mockWallet = "EQB...SLH_WALLET_ADDRESS"; 
+                webApp.sendData("ton_connect:" + mockWallet);
+                webApp.close();
+            }
+        </script>
     </body>
     </html>
     """
@@ -60,17 +70,17 @@ def handle_start(message):
     logger.info(f"User {message.from_user.id} used /start")
     markup = types.InlineKeyboardMarkup()
     url = f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}"
-    markup.add(types.InlineKeyboardButton("ظ‹ع؛â€‌آ± أ—آ¤أ—ع¾أ—â€” أ—ع¯أ—آ¨أ—آ أ—آ§ أ—آ¤أ—آ¨أ—â„¢أ—â€چأ—â„¢أ—â€¢أ—â€Œ", web_app=types.WebAppInfo(url)))
-    bot.send_message(message.chat.id, "ظ‹ع؛â€™عک **SLH OS Dashboard**", reply_markup=markup)
+    markup.add(types.InlineKeyboardButton("ط¸â€¹ط¹ط›أ¢â‚¬â€Œط¢آ± ط£â€”ط¢آ¤ط£â€”ط¹آ¾ط£â€”أ¢â‚¬â€‌ ط£â€”ط¹آ¯ط£â€”ط¢آ¨ط£â€”ط¢آ ط£â€”ط¢آ§ ط£â€”ط¢آ¤ط£â€”ط¢آ¨ط£â€”أ¢â€‍آ¢ط£â€”أ¢â‚¬ع†ط£â€”أ¢â€‍آ¢ط£â€”أ¢â‚¬آ¢ط£â€”أ¢â‚¬إ’", web_app=types.WebAppInfo(url)))
+    bot.send_message(message.chat.id, "ط¸â€¹ط¹ط›أ¢â‚¬â„¢ط¹ع© **SLH OS Dashboard**", reply_markup=markup)
 
 @bot.message_handler(commands=['daily'])
 def daily_cmd(message):
     user_id = message.from_user.id
     success, result = wallet_logic.claim_daily(user_id)
     if success:
-        bot.reply_to(message, f"ظ‹ع؛عکظ¾ **أ—â€کأ—â€¢أ—آ أ—â€¢أ—طŒ!** أ—آ§أ—â„¢أ—â€کأ—إ“أ—ع¾ {result} SLH")
+        bot.reply_to(message, f"ط¸â€¹ط¹ط›ط¹ع©ط¸آ¾ **ط£â€”أ¢â‚¬ع©ط£â€”أ¢â‚¬آ¢ط£â€”ط¢آ ط£â€”أ¢â‚¬آ¢ط£â€”ط·إ’!** ط£â€”ط¢آ§ط£â€”أ¢â€‍آ¢ط£â€”أ¢â‚¬ع©ط£â€”ط¥â€œط£â€”ط¹آ¾ {result} SLH")
     else:
-        bot.reply_to(message, f"أ¢عˆآ³ أ—â€”أ—â€“أ—â€¢أ—آ¨ أ—â€کأ—آ¢أ—â€¢أ—â€œ {result}")
+        bot.reply_to(message, f"ط£آ¢ط¹ث†ط¢آ³ ط£â€”أ¢â‚¬â€‌ط£â€”أ¢â‚¬â€œط£â€”أ¢â‚¬آ¢ط£â€”ط¢آ¨ ط£â€”أ¢â‚¬ع©ط£â€”ط¢آ¢ط£â€”أ¢â‚¬آ¢ط£â€”أ¢â‚¬إ“ {result}")
 
 @app.post("/")
 async def process_webhook(request: Request):
@@ -83,5 +93,6 @@ if __name__ == "__main__":
     bot.remove_webhook()
     bot.set_webhook(url=WEBHOOK_URL)
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 

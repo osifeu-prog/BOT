@@ -4,13 +4,22 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from utils.config import *
 from handlers import wallet_logic
-from db.connection import init_db
+from db.connection import init_db, get_conn
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
 app = FastAPI()
 
+# פונקציה להטענת ארנק אדמין
+def setup_admin_balance():
+    conn = get_conn()
+    cur = conn.cursor()
+    # נותן לאדמין מיליון מטבעות לחלוקה
+    cur.execute("UPDATE users SET balance = 1000000.0 WHERE user_id = %s", (str(ADMIN_ID),))
+    conn.commit()
+    conn.close()
+
 @app.get("/gui/wallet", response_class=HTMLResponse)
-def wallet_gui(user_id: str):
+async def wallet_gui(user_id: str):
     balance, xp, rank, addr = wallet_logic.get_user_full_data(user_id)
     txs = wallet_logic.get_last_transactions(user_id)
     tx_items = "".join([f'<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #222;"><span>{t[1]}</span><span style="color:#d4af37">+{t[0]} SLH</span></div>' for t in txs])
@@ -34,20 +43,21 @@ def handle_commands(message):
     
     if message.text in ['/setup', '/startall'] and str(user_id) == str(ADMIN_ID):
         init_db()
+        setup_admin_balance()
         bot.set_my_commands([telebot.types.BotCommand("start", "Open Wallet")])
-        bot.reply_to(message, "✅ System Synced & Ready!")
+        bot.reply_to(message, "✅ המערכת אותחלה! קיבלת 1,000,000 SLH לחלוקה.")
         return
 
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     url = f"{WEBHOOK_URL}/gui/wallet?user_id={user_id}"
-    markup.add(telebot.types.KeyboardButton("🏦 Open SLH Wallet", web_app=telebot.types.WebAppInfo(url)))
-    bot.send_message(message.chat.id, "💎 Welcome to SLH OS!", reply_markup=markup)
+    markup.add(telebot.types.KeyboardButton("🏦 פתח ארנק SLH", web_app=telebot.types.WebAppInfo(url)))
+    bot.send_message(message.chat.id, "💎 ברוך הבא ל-SLH OS!", reply_markup=markup)
 
 @app.post("/")
 async def process_webhook(request: Request):
     update = telebot.types.Update.de_json(await request.json())
     bot.process_new_updates([update])
-    return {{"status": "ok"}}
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))

@@ -4,7 +4,6 @@ from utils.config import ADMIN_ID
 
 def get_ton_gas_price():
     try:
-        # שאילתה ל-Toncenter לקבלת מצב הרשת
         res = requests.get("https://toncenter.com/api/v2/getConsensusBlock", timeout=5).json()
         return "Online (Standard Fees)"
     except:
@@ -22,8 +21,7 @@ def register_admin_handlers(bot):
                 message.chat.id,
                 f"📊 **מערכת ניהול - SLH OS**\n\n" +
                 f"⛽ סטטוס גז ב-TON: {gas_status}\n" +
-                f"🛠 גרסת אדמין: 2.0 (Enhanced)\n\n" +
-                "מה תרצה לעשות?",
+                f"🛠 גרסת אדמין: 2.0",
                 reply_markup=markup,
                 parse_mode="Markdown"
             )

@@ -1,5 +1,15 @@
 ﻿from telebot import types
 from utils.config import ADMIN_ID
+# כאן אנחנו מניחים שיש לך חיבור ל-DB בתוך הפרויקט
+from db.connection import cur, conn 
+
+def register_user(user_id):
+    """פונקציה קריטית שהייתה חסרה - רושמת משתמש חדש ב-DB"""
+    try:
+        cur.execute("INSERT INTO users (user_id, balance) VALUES (%s, 0) ON CONFLICT DO NOTHING", (user_id,))
+        conn.commit()
+    except Exception as e:
+        print(f"Error registering user: {e}")
 
 def register_wallet_handlers(bot):
     @bot.message_handler(commands=['buy'])
@@ -20,9 +30,9 @@ def register_wallet_handlers(bot):
                 ADMIN_ID,
                 f"🔔 **בקשת רכישה חדשה!**\n\n" +
                 f"משתמש: @{username}\n" +
+                f"ID: {user_id}\n" +
                 f"כמות: {amount} SLH\n" +
-                f"לתשלום: {amount} ש\"ח\n\n" +
-                "לאחר קבלת התשלום, לחץ על האישור לשליחת המטבעות מה-Railway.",
+                f"לתשלום: {amount} ש\"ח",
                 reply_markup=markup,
                 parse_mode="Markdown"
             )

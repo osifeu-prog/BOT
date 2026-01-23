@@ -7,15 +7,15 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from telebot import types
 from utils.config import TELEGRAM_TOKEN, WEBHOOK_URL
-from handlers import wallet_logic
+from handlers import wallet_logic, saas, router, admin, ai_agent
 import uvicorn
 
+# הגדרת לוגים מקצועית ותקינה
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s',
     handlers=[logging.StreamHandler(sys.stdout)]
 )
-logger = logging.getLogger("SLH_CORE")s - [%(levelname)s] - %(message)s')
 logger = logging.getLogger("SLH_CORE")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
@@ -35,59 +35,38 @@ def wallet_gui(user_id: str):
             body {{ font-family: sans-serif; background-color: #0a0a0a; color: white; text-align: center; padding: 20px; }}
             .card {{ background: linear-gradient(145deg, #1a1a1a, #000); border-radius: 25px; padding: 25px; border: 1px solid #d4af37; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }}
             .balance {{ font-size: 36px; color: #d4af37; font-weight: bold; margin: 10px 0; }}
-            .btn-group {{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }}
-            .btn {{ background: #222; color: #d4af37; border: 1px solid #d4af37; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; }}
-            .btn-main {{ background: #d4af37; color: black; grid-column: span 2; }}
+            .btn {{ background: #d4af37; color: black; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }}
         </style>
     </head>
     <body>
         <div class="card">
-            <div style="color: #888; font-size: 12px;">أ—â„¢أ—ع¾أ—آ¨أ—â€‌ أ—â€کأ—â€”أ—آ©أ—â€کأ—â€¢أ—ع؛</div>
+            <div style="color: #888; font-size: 12px;">יתרה בחשבון</div>
             <div class="balance">{balance:,.2f} SLH</div>
             <div style="font-size: 11px; opacity: 0.6;">{addr}</div>
-            
-            <div class="btn-group">
-                <button class="btn btn-main" onclick="scanQR()">ظ‹ع؛â€‌ع† أ—طŒأ—آ¨أ—â€¢أ—آ§ QR أ—إ“أ—â€‌أ—آ¢أ—â€کأ—آ¨أ—â€‌</button>
-                <button class="btn" onclick="showAddress()">ظ‹ع؛â€œآ¥ أ—â€‌أ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾ أ—آ©أ—إ“أ—â„¢</button>
-                <button class="btn" onclick="window.Telegram.WebApp.close()">أ¢إ“â€“أ¯آ¸عˆ أ—طŒأ—â€™أ—â€¢أ—آ¨</button>
-            </div>
+            <button class="btn" onclick="window.Telegram.WebApp.close()">סגור</button>
         </div>
-
-        <script>
-            const webApp = window.Telegram.WebApp;
-            webApp.ready();
-
-            function scanQR() {{
-                webApp.showScanQrPopup({{ text: "أ—طŒأ—آ¨أ—â€¢أ—آ§ أ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾ أ—ع¯أ—آ¨أ—آ أ—آ§ أ—إ“أ—â€‌أ—آ¢أ—â€کأ—آ¨أ—â€‌" }}, function(data) {{
-                    webApp.sendData("transfer:" + data); // أ—آ©أ—â€¢أ—إ“أ—â€” أ—ع¯أ—ع¾ أ—â€‌أ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾ أ—â€”أ—â€“أ—آ¨أ—â€‌ أ—إ“أ—â€کأ—â€¢أ—ع©
-                    webApp.close();
-                }});
-            }}
-
-            function showAddress() {{
-                webApp.showAlert("أ—â€؛أ—ع¾أ—â€¢أ—â€کأ—ع¾ أ—â€‌أ—ع¯أ—آ¨أ—آ أ—آ§ أ—آ©أ—إ“أ—ع‘ أ—â€‌أ—â„¢أ—ع¯:\n{addr}");
-            }}
-        </script>
+        <script>window.Telegram.WebApp.ready();</script>
     </body>
     </html>
     """
     return html_content
 
-@bot.message_handler(func=lambda message: True)
-def handle_webapp_data(message):
-    if message.web_app_data:
-        data = message.web_app_data.data
-        if data.startswith("transfer:"):
-            target_addr = data.split(":")[1]
-            bot.reply_to(message, f"ظ‹ع؛â€™آ¸ **أ—â€‌أ—آ¢أ—â€کأ—آ¨أ—â€‌ أ—â€کأ—â€کأ—â„¢أ—آ¦أ—â€¢أ—آ¢...**\nأ—â„¢أ—آ¢أ—â€œ: {target_addr}\nأ—â€؛أ—â€چأ—â€‌ أ—ع¾أ—آ¨أ—آ¦أ—â€‌ أ—إ“أ—â€‌أ—آ¢أ—â€کأ—â„¢أ—آ¨?")
-            # أ—â€؛أ—ع¯أ—ع؛ أ—آ أ—â€چأ—آ©أ—â„¢أ—ع‘ أ—إ“أ—إ“أ—â€¢أ—â€™أ—â„¢أ—آ§أ—ع¾ أ—â€‌أ—ع¾أ—آ©أ—إ“أ—â€¢أ—â€Œ
-
 @bot.message_handler(commands=['start'])
 def handle_start(message):
+    logger.info(f"User {message.from_user.id} used /start")
     markup = types.InlineKeyboardMarkup()
     url = f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}"
-    markup.add(types.InlineKeyboardButton("ظ‹ع؛â€‌آ± أ—آ¤أ—ع¾أ—â€” أ—ع¯أ—آ¨أ—آ أ—آ§ أ—آ¤أ—آ¨أ—â„¢أ—â€چأ—â„¢أ—â€¢أ—â€Œ", web_app=types.WebAppInfo(url)))
-    bot.send_message(message.chat.id, "ظ‹ع؛â€™عک **SLH OS Dashboard**", reply_markup=markup)
+    markup.add(types.InlineKeyboardButton("🔱 פתח ארנק פרימיום", web_app=types.WebAppInfo(url)))
+    bot.send_message(message.chat.id, "💎 **SLH OS Dashboard**", reply_markup=markup)
+
+@bot.message_handler(commands=['daily'])
+def daily_cmd(message):
+    user_id = message.from_user.id
+    success, result = wallet_logic.claim_daily(user_id)
+    if success:
+        bot.reply_to(message, f"🎁 **בונוס!** קיבלת {result} SLH")
+    else:
+        bot.reply_to(message, f"⏳ חזור בעוד {result}")
 
 @app.post("/")
 async def process_webhook(request: Request):
@@ -100,16 +79,3 @@ if __name__ == "__main__":
     bot.remove_webhook()
     bot.set_webhook(url=WEBHOOK_URL)
     uvicorn.run(app, host="0.0.0.0", port=port)
-
-@bot.message_handler(commands=['daily'])
-def daily_cmd(message):
-    user_id = message.from_user.id
-    success, result = wallet_logic.claim_daily(user_id)
-    
-    if success:
-        bot.reply_to(message, f"ًںژپ **×‘×•× ×•×، ×™×•×‍×™ ×”×ھ×§×‘×œ!**\n\n×”×¨×•×•×—×ھ {result} SLH ×•-5 XP.\n×‘×•×گ ×‍×—×¨ ×©×•×‘!")
-    elif success is False:
-        bot.reply_to(message, f"âڈ³ **×‍×•×§×“×‌ ×‍×“×™!**\n\n×ھ×•×›×œ ×œ×§×‘×œ ×گ×ھ ×”×‘×•× ×•×، ×”×‘×گ ×‘×¢×•×“ {result}.")
-    else:
-        bot.reply_to(message, "â‌Œ ×©×’×™×گ×” ×‘×‘×،×™×، ×”× ×ھ×•× ×™×‌. ×•×•×“×گ ×©×”×¨×¦×ھ ×گ×ھ ×¤×§×•×“×ھ ×”-SQL.")
-

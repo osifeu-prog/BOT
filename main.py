@@ -37,3 +37,5 @@ if __name__ == "__main__":
     bot.remove_webhook()
     # מצב פולינג מקומי לבדיקה
     bot.polling(none_stop=True)
+
+# Force redeploy v2

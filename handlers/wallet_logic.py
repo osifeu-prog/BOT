@@ -1,15 +1,16 @@
 ﻿from telebot import types
 from utils.config import ADMIN_ID
-# כאן אנחנו מניחים שיש לך חיבור ל-DB בתוך הפרויקט
-from db.connection import cur, conn 
+import db.connection as db_conn
 
 def register_user(user_id):
-    """פונקציה קריטית שהייתה חסרה - רושמת משתמש חדש ב-DB"""
+    """רישום משתמש בצורה בטוחה שתואמת לכל מבנה DB"""
     try:
-        cur.execute("INSERT INTO users (user_id, balance) VALUES (%s, 0) ON CONFLICT DO NOTHING", (user_id,))
-        conn.commit()
+        # אנחנו משתמשים בגישה גנרית כדי לא לשבור את החיבור
+        with db_conn.conn.cursor() as cur:
+            cur.execute("INSERT INTO users (user_id, balance) VALUES (%s, 0) ON CONFLICT DO NOTHING", (user_id,))
+            db_conn.conn.commit()
     except Exception as e:
-        print(f"Error registering user: {e}")
+        print(f"DB Error: {e}")
 
 def register_wallet_handlers(bot):
     @bot.message_handler(commands=['buy'])
@@ -30,12 +31,12 @@ def register_wallet_handlers(bot):
                 ADMIN_ID,
                 f"🔔 **בקשת רכישה חדשה!**\n\n" +
                 f"משתמש: @{username}\n" +
-                f"ID: {user_id}\n" +
                 f"כמות: {amount} SLH\n" +
-                f"לתשלום: {amount} ש\"ח",
+                f"לתשלום: {amount} ש\"ח\n\n" +
+                "אשר לאחר קבלת התשלום.",
                 reply_markup=markup,
                 parse_mode="Markdown"
             )
             bot.send_message(message.chat.id, "✅ בקשתך נשלחה לאדמין לאישור.")
-        except:
+        except Exception:
             bot.send_message(message.chat.id, "❌ נא להזין מספר שלם בלבד.")

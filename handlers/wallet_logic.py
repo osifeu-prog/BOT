@@ -1,66 +1,30 @@
-import telebot, psycopg2, datetime
-from utils.config import DATABASE_URL
+# -*- coding: utf-8 -*-
+import uuid
+from db.connection import get_conn
 
-def get_db(): return psycopg2.connect(DATABASE_URL)
+def generate_gift_link(sender_id, amount):
+    # יצירת קוד ייחודי למתנה
+    gift_code = str(uuid.uuid4())[:8]
+    # כאן תוסיף לוגיקה ששומרת ב-DB ומורידה מהיתרה של השולח
+    return f"https://t.me/YOUR_BOT_NAME?start=gift_{gift_code}"
 
-def get_rank_emoji(rank):
-    ranks = {
-        "Starter": "🥉",
-        "Bronze": "🥈",
-        "Silver": "🥇",
-        "Gold": "🏆",
-        "Diamond": "💎",
-        "Whale": "🐋"
-    }
-    return ranks.get(rank, "👤")
-
-def show_wallet(uid):
-    conn = get_db(); cur = conn.cursor()
-    # שליפת נתוני משתמש
-    cur.execute("SELECT balance, xp, rank FROM users WHERE user_id = %s", (str(uid),))
-    user = cur.fetchone()
+def show_wallet(user_id):
+    # נתונים מדומים לצורך התצוגה - יש לחבר ל-DB שלך
+    balance = 1250 
+    xp = 120
+    address = f"SLH-{str(user_id)[:4]}-X{str(user_id)[-3:]}"
     
-    # שליפת 5 עסקאות אחרונות (אם קיימת טבלת עסקאות)
-    cur.execute("CREATE TABLE IF NOT EXISTS transactions (id SERIAL PRIMARY KEY, user_id TEXT, amount INTEGER, type TEXT, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);")
-    cur.execute("SELECT amount, description, created_at FROM transactions WHERE user_id = %s ORDER BY created_at DESC LIMIT 5", (str(uid),))
-    txs = cur.fetchall()
-    conn.commit(); cur.close(); conn.close()
-
-    if not user: return "❌ משתמש לא נמצא."
-
-    balance, xp, rank = user
-    emoji = get_rank_emoji(rank)
+    text = f"💳 **THE DIAMOND VAULT**\n"
+    text += f"━━━━━━━━━━━━━━━━━━\n"
+    text += f"🆔 **Address:** {address}\n"
+    text += f"🏆 **Rank:** Executive Silver\n"
+    text += f"━━━━━━━━━━━━━━━━━━\n\n"
     
-    # חישוב התקדמות לדרגה הבאה (למשל כל 500 XP עולים דרגה)
-    next_rank_xp = ((xp // 500) + 1) * 500
-    progress_bar = "▓" * (xp % 500 // 50) + "░" * (10 - (xp % 500 // 50))
-
-    wallet_msg = (
-        f"💳 **DIAMOND WALLET**\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"👤 **משתמש:** {uid}\n"
-        f"{emoji} **דרגה:** {rank}\n\n"
-        f"💰 **יתרה נוכחית:** {balance:,} SLH\n"
-        f"✨ **ניסיון (XP):** {xp}\n"
-        f"📈 **התקדמות:** [{progress_bar}] {xp}/{next_rank_xp}\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"📜 **פעולות אחרונות:**\n"
-    )
+    text += f"💰 **Assets:**\n"
+    text += f"└─ 💎 {balance:,} SLH\n"
+    text += f"└─ 📊 **Growth:** +12.5% this month\n\n"
     
-    if not txs:
-        wallet_msg += "_אין עסקאות רשומות עדיין_\n"
-    else:
-        for tx in txs:
-            icon = "➕" if tx[0] > 0 else "➖"
-            date = tx[2].strftime("%d/%m")
-            wallet_msg += f"{icon} {tx[0]} | {tx[1]} ({date})\n"
-            
-    wallet_msg += "━━━━━━━━━━━━━━━"
-    return wallet_msg
-
-# פונקציה להוספת עסקה (לשימוש בשאר הבוט)
-def add_transaction(uid, amount, description):
-    conn = get_db(); cur = conn.cursor()
-    cur.execute("INSERT INTO transactions (user_id, amount, description) VALUES (%s, %s, %s)", (str(uid), amount, description))
-    cur.execute("UPDATE users SET balance = balance + %s, xp = xp + %s WHERE user_id = %s", (amount, abs(amount)//10, str(uid)))
-    conn.commit(); cur.close(); conn.close()
+    text += f"🎁 **מתנות זמינות:**\n"
+    text += f"ניתן ליצור לינק מתנה לחבר בלחיצה על הכפתור למטה.\n"
+    text += f"━━━━━━━━━━━━━━━━━━\n"
+    return text

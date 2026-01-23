@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 import logging
 import sys
 import os
 import telebot
 from fastapi import FastAPI, Request
 from utils.config import TELEGRAM_TOKEN, WEBHOOK_URL
-# ייבוא כל ה-Handlers
+# ×™×™×‘×•×گ ×›×œ ×”-Handlers
 from handlers import wallet_logic, saas, router, admin, ai_agent, arcade
 import uvicorn
 
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
 app = FastAPI()
 
-# --- חיבור ה-Handlers של המודולים לבוט הראשי ---
-# כאן אנחנו אומרים לבוט להשתמש בפונקציות מהקבצים האחרים
+# --- ×—×™×‘×•×¨ ×”-Handlers ×©×œ ×”×‍×•×“×•×œ×™×‌ ×œ×‘×•×ک ×”×¨×گ×©×™ ---
+# ×›×گ×ں ×گ× ×—× ×• ×گ×•×‍×¨×™×‌ ×œ×‘×•×ک ×œ×”×©×ھ×‍×© ×‘×¤×•× ×§×¦×™×•×ھ ×‍×”×§×‘×¦×™×‌ ×”×گ×—×¨×™×‌
 @bot.message_handler(commands=['admin'])
 def admin_cmd(message):
     admin.handle_admin(bot, message)
@@ -31,14 +31,14 @@ def profile_cmd(message):
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
-    logger.info(f"🚀 Received /start from {message.from_user.id}")
+    logger.info(f"ًںڑ€ Received /start from {message.from_user.id}")
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
-    btn_wallet = telebot.types.InlineKeyboardButton('💰 הארנק שלי', callback_data='view_wallet')
-    btn_estate = telebot.types.InlineKeyboardButton('🏠 נדל"ן וריבונות', callback_data='real_estate')
+    btn_wallet = telebot.types.InlineKeyboardButton('ًں’° ×”×گ×¨× ×§ ×©×œ×™', callback_data='view_wallet')
+    btn_estate = telebot.types.InlineKeyboardButton('ًںڈ  × ×“×œ"×ں ×•×¨×™×‘×•× ×•×ھ', callback_data='real_estate')
     markup.add(btn_wallet, btn_estate)
-    bot.reply_to(message, "💎 **SLH OS Core - Full Access**\nהמערכת פעילה עם כל המודולים.", parse_mode="HTML", reply_markup=markup)
+    bot.reply_to(message, "ًں’ژ **SLH OS Core - Full Access**\n×”×‍×¢×¨×›×ھ ×¤×¢×™×œ×” ×¢×‌ ×›×œ ×”×‍×•×“×•×œ×™×‌.", parse_mode="HTML", reply_markup=markup)
 
-# טיפול בכפתורים (Callback Queries)
+# ×ک×™×¤×•×œ ×‘×›×¤×ھ×•×¨×™×‌ (Callback Queries)
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callbacks(call):
     if call.data == 'view_wallet':
@@ -54,7 +54,7 @@ async def process_webhook(request: Request):
         bot.process_new_updates([update])
         return {"status": "ok"}
     except Exception as e:
-        logger.error(f"❌ Webhook Error: {e}")
+        logger.error(f"â‌Œ Webhook Error: {e}")
         return {"status": "error"}
 
 @app.get("/")
@@ -66,3 +66,4 @@ if __name__ == "__main__":
     bot.set_webhook(url=WEBHOOK_URL)
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run(app, host="0.0.0.0", port=port)
+

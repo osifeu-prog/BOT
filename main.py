@@ -1,70 +1,65 @@
 # -*- coding: utf-8 -*-
 import logging
-import sys
 import os
+import sys
 import telebot
 from fastapi import FastAPI, Request
+from telebot import types
 from utils.config import TELEGRAM_TOKEN, WEBHOOK_URL
-# ×™×™×‘×•×گ ×›×œ ×”-Handlers
-from handlers import wallet_logic, saas, router, admin, ai_agent, arcade
+from handlers import wallet_logic, saas, router, admin, ai_agent
 import uvicorn
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
-logger = logging.getLogger(__name__)
+# הגדרת לוגים מתקדמת
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - [%(levelname)s] - %(name)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("SLH_CORE")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
 app = FastAPI()
 
-# --- ×—×™×‘×•×¨ ×”-Handlers ×©×œ ×”×‍×•×“×•×œ×™×‌ ×œ×‘×•×ک ×”×¨×گ×©×™ ---
-# ×›×گ×ں ×گ× ×—× ×• ×گ×•×‍×¨×™×‌ ×œ×‘×•×ک ×œ×”×©×ھ×‍×© ×‘×¤×•× ×§×¦×™×•×ھ ×‍×”×§×‘×¦×™×‌ ×”×گ×—×¨×™×‌
-@bot.message_handler(commands=['admin'])
-def admin_cmd(message):
-    admin.handle_admin(bot, message)
-
-@bot.message_handler(commands=['ai'])
-def ai_cmd(message):
-    ai_agent.handle_ai(bot, message)
-
-@bot.message_handler(commands=['profile', 'wallet'])
-def profile_cmd(message):
-    bot.reply_to(message, wallet_logic.show_wallet(message.from_user.id))
-
 @bot.message_handler(commands=['start'])
 def handle_start(message):
-    logger.info(f"ًںڑ€ Received /start from {message.from_user.id}")
-    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
-    btn_wallet = telebot.types.InlineKeyboardButton('ًں’° ×”×گ×¨× ×§ ×©×œ×™', callback_data='view_wallet')
-    btn_estate = telebot.types.InlineKeyboardButton('ًںڈ  × ×“×œ"×ں ×•×¨×™×‘×•× ×•×ھ', callback_data='real_estate')
-    markup.add(btn_wallet, btn_estate)
-    bot.reply_to(message, "ًں’ژ **SLH OS Core - Full Access**\n×”×‍×¢×¨×›×ھ ×¤×¢×™×œ×” ×¢×‌ ×›×œ ×”×‍×•×“×•×œ×™×‌.", parse_mode="HTML", reply_markup=markup)
+    logger.info(f"User {message.from_user.id} started the bot")
+    
+    # כפתור המיני-סייט (Web App)
+    markup = types.InlineKeyboardMarkup()
+    web_app = types.WebAppInfo(f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}")
+    btn_site = types.InlineKeyboardButton("🌐 פתח ארנק (Mini-App)", web_app=web_app)
+    btn_gift = types.InlineKeyboardButton("🎁 צור מתנה", callback_data="create_gift")
+    markup.add(btn_site)
+    markup.add(btn_gift)
+    
+    welcome_text = (
+        "💎 **SLH OS v2.0 - Active**\n"
+        "ברוך הבא למערכת הניהול הריבונית.\n\n"
+        "הארנק שלך מסונכרן כעת כמיני-סייט."
+    )
+    bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=markup)
 
-# ×ک×™×¤×•×œ ×‘×›×¤×ھ×•×¨×™×‌ (Callback Queries)
-@bot.callback_query_handler(func=lambda call: True)
-def handle_callbacks(call):
-    if call.data == 'view_wallet':
-        bot.send_message(call.message.chat.id, wallet_logic.show_wallet(call.from_user.id))
-    elif call.data == 'real_estate':
-        bot.send_message(call.message.chat.id, saas.get_support_info(), parse_mode="Markdown")
+# חיבור שאר הפקודות (שחזור)
+@bot.message_handler(commands=['ai'])
+def ai_cmd(message): ai_agent.handle_ai(bot, message)
+
+@bot.message_handler(commands=['admin'])
+def admin_cmd(message): admin.handle_admin(bot, message)
 
 @app.post("/")
 async def process_webhook(request: Request):
-    try:
-        json_data = await request.json()
-        update = telebot.types.Update.de_json(json_data)
-        bot.process_new_updates([update])
-        return {"status": "ok"}
-    except Exception as e:
-        logger.error(f"â‌Œ Webhook Error: {e}")
-        return {"status": "error"}
+    update = telebot.types.Update.de_json(await request.json())
+    bot.process_new_updates([update])
+    return {"status": "ok"}
 
-@app.get("/")
-def health_check():
-    return {"status": "Active"}
+@app.get("/gui/wallet")
+def wallet_gui(user_id: str):
+    # כאן יוגש ה-HTML של המיני-סייט (בעתיד נוכל לשים קובץ HTML נפרד)
+    return {"message": "Wallet Mini-Site is under construction", "user_id": user_id}
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    logger.info(f"Starting server on port {port}...")
     bot.remove_webhook()
     bot.set_webhook(url=WEBHOOK_URL)
-    port = int(os.environ.get("PORT", 8080))
     uvicorn.run(app, host="0.0.0.0", port=port)
-
-

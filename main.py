@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import logging
 import sys
 import os
@@ -66,4 +66,5 @@ if __name__ == "__main__":
     bot.set_webhook(url=WEBHOOK_URL)
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 

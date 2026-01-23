@@ -15,12 +15,14 @@ def init_db():
     conn = get_conn()
     cursor = conn.cursor()
     
-    # פקודות SQL נפרדות למניעת שגיאות סינטקס
+    # ×¤×§×•×“×•×ھ SQL × ×¤×¨×“×•×ھ ×œ×‍× ×™×¢×ھ ×©×’×™×گ×•×ھ ×،×™× ×ک×§×،
     commands = [
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS rank TEXT DEFAULT 'Starter'",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_address TEXT",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_daily TIMESTAMP",
+        "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS prev_hash TEXT",
+        "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS block_hash TEXT",
         "CREATE TABLE IF NOT EXISTS transactions (id SERIAL PRIMARY KEY, sender_id TEXT, receiver_id TEXT, amount FLOAT, type TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)",
         "CREATE TABLE IF NOT EXISTS gifts (id SERIAL PRIMARY KEY, code TEXT UNIQUE, creator_id TEXT, amount FLOAT, is_redeemed BOOLEAN DEFAULT FALSE, redeemed_by TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
     ]
@@ -38,5 +40,6 @@ def init_db():
     conn.close()
     logger.info("--- Database Migrations Finished ---")
 
-# הרצה בזמן טעינה
+# ×”×¨×¦×” ×‘×–×‍×ں ×ک×¢×™× ×”
 init_db()
+

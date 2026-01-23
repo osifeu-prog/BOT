@@ -10,7 +10,7 @@ from utils.config import TELEGRAM_TOKEN, WEBHOOK_URL
 from handlers import wallet_logic, saas, router, admin, ai_agent
 import uvicorn
 
-# ×”×’×“×¨×ھ ×œ×•×’×™×‌ ×‍×§×¦×•×¢×™×ھ ×•×ھ×§×™× ×”
+# أ—â€‌أ—â€™أ—â€œأ—آ¨أ—ع¾ أ—إ“أ—â€¢أ—â€™أ—â„¢أ—â€Œ أ—â€چأ—آ§أ—آ¦أ—â€¢أ—آ¢أ—â„¢أ—ع¾ أ—â€¢أ—ع¾أ—آ§أ—â„¢أ—آ أ—â€‌
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s',
@@ -21,7 +21,7 @@ logger = logging.getLogger("SLH_CORE")
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=False)
 @bot.middleware_handler(update_types=['message'])
 def log_incoming_messages(bot_instance, message):
-    logger.info(f"📩 Incoming: UserID: {message.from_user.id} | Text: {message.text}")
+    logger.info(f"ًں“© Incoming: UserID: {message.from_user.id} | Text: {message.text}")
 app = FastAPI()
 
 @app.get("/gui/wallet", response_class=HTMLResponse)
@@ -40,13 +40,14 @@ def wallet_gui(user_id: str):
             .balance {{ font-size: 36px; color: #d4af37; font-weight: bold; margin: 10px 0; }}
             .btn {{ background: #d4af37; color: black; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }}
         </style>
-    </head>
+    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
+</head>
     <body>
         <div class="card">
-            <div style="color: #888; font-size: 12px;">×™×ھ×¨×” ×‘×—×©×‘×•×ں</div>
+            <div style="color: #888; font-size: 12px;">أ—â„¢أ—ع¾أ—آ¨أ—â€‌ أ—â€کأ—â€”أ—آ©أ—â€کأ—â€¢أ—ع؛</div>
             <div class="balance">{balance:,.2f} SLH</div>
             <div style="font-size: 11px; opacity: 0.6;">{addr}</div>
-            <button class="btn" onclick="window.Telegram.WebApp.close()">×،×’×•×¨</button>
+            <button class="btn" onclick="window.Telegram.WebApp.close()">أ—طŒأ—â€™أ—â€¢أ—آ¨</button>
         </div>
         <script>window.Telegram.WebApp.ready();</script>
     </body>
@@ -59,17 +60,17 @@ def handle_start(message):
     logger.info(f"User {message.from_user.id} used /start")
     markup = types.InlineKeyboardMarkup()
     url = f"{WEBHOOK_URL}/gui/wallet?user_id={message.from_user.id}"
-    markup.add(types.InlineKeyboardButton("ًں”± ×¤×ھ×— ×گ×¨× ×§ ×¤×¨×™×‍×™×•×‌", web_app=types.WebAppInfo(url)))
-    bot.send_message(message.chat.id, "ًں’ژ **SLH OS Dashboard**", reply_markup=markup)
+    markup.add(types.InlineKeyboardButton("ظ‹ع؛â€‌آ± أ—آ¤أ—ع¾أ—â€” أ—ع¯أ—آ¨أ—آ أ—آ§ أ—آ¤أ—آ¨أ—â„¢أ—â€چأ—â„¢أ—â€¢أ—â€Œ", web_app=types.WebAppInfo(url)))
+    bot.send_message(message.chat.id, "ظ‹ع؛â€™عک **SLH OS Dashboard**", reply_markup=markup)
 
 @bot.message_handler(commands=['daily'])
 def daily_cmd(message):
     user_id = message.from_user.id
     success, result = wallet_logic.claim_daily(user_id)
     if success:
-        bot.reply_to(message, f"ًںژپ **×‘×•× ×•×،!** ×§×™×‘×œ×ھ {result} SLH")
+        bot.reply_to(message, f"ظ‹ع؛عکظ¾ **أ—â€کأ—â€¢أ—آ أ—â€¢أ—طŒ!** أ—آ§أ—â„¢أ—â€کأ—إ“أ—ع¾ {result} SLH")
     else:
-        bot.reply_to(message, f"âڈ³ ×—×–×•×¨ ×‘×¢×•×“ {result}")
+        bot.reply_to(message, f"أ¢عˆآ³ أ—â€”أ—â€“أ—â€¢أ—آ¨ أ—â€کأ—آ¢أ—â€¢أ—â€œ {result}")
 
 @app.post("/")
 async def process_webhook(request: Request):
@@ -82,4 +83,5 @@ if __name__ == "__main__":
     bot.remove_webhook()
     bot.set_webhook(url=WEBHOOK_URL)
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 

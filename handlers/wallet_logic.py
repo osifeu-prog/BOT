@@ -46,3 +46,41 @@ def claim_daily(user_id):
         logger.error(f"Error claiming daily for {user_id}: {e}")
         return None, str(e)
 
+
+import hashlib
+import json
+
+def generate_hash(data_dict):
+    """???? SHA-256 ?????? ?????"""
+    encoded = json.dumps(data_dict, sort_keys=True).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+def get_last_hash():
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT block_hash FROM transactions ORDER BY id DESC LIMIT 1")
+    res = cursor.fetchone()
+    conn.close()
+    return res[0] if res else "00000000000000000000000000000000"
+
+def secure_transaction(sender_id, receiver_id, amount, tx_type):
+    conn = get_conn()
+    cursor = conn.cursor()
+    
+    prev_hash = get_last_hash()
+    tx_data = {
+        "sender": sender_id,
+        "receiver": receiver_id,
+        "amount": amount,
+        "type": tx_type,
+        "prev_hash": prev_hash
+    }
+    block_hash = generate_hash(tx_data)
+    
+    cursor.execute(
+        "INSERT INTO transactions (sender_id, receiver_id, amount, type, prev_hash, block_hash) VALUES (%s, %s, %s, %s, %s, %s)",
+        (str(sender_id), str(receiver_id), amount, tx_type, prev_hash, block_hash)
+    )
+    conn.commit()
+    conn.close()
+    return block_hash

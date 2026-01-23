@@ -23,7 +23,7 @@ def claim_daily(user_id):
         conn = get_conn()
         cursor = conn.cursor()
         
-        # ×‘×“×™×§×” ×‍×ھ×™ × ×œ×§×— ×œ×گ×—×¨×•× ×”
+        # أ—â€کأ—â€œأ—â„¢أ—آ§أ—â€‌ أ—â€چأ—ع¾أ—â„¢ أ—آ أ—إ“أ—آ§أ—â€” أ—إ“أ—ع¯أ—â€”أ—آ¨أ—â€¢أ—آ أ—â€‌
         cursor.execute("SELECT last_daily FROM users WHERE user_id = %s", (str(user_id),))
         last_claimed = cursor.fetchone()[0]
         
@@ -32,9 +32,9 @@ def claim_daily(user_id):
             hours, remainder = divmod(time_left.seconds, 3600)
             minutes, _ = divmod(remainder, 60)
             conn.close()
-            return False, f"{hours} ×©×¢×•×ھ ×•-{minutes} ×“×§×•×ھ"
+            return False, f"{hours} أ—آ©أ—آ¢أ—â€¢أ—ع¾ أ—â€¢-{minutes} أ—â€œأ—آ§أ—â€¢أ—ع¾"
 
-        # ×”×’×¨×œ×ھ ×،×›×•×‌ ×•×¢×“×›×•×ں
+        # أ—â€‌أ—â€™أ—آ¨أ—إ“أ—ع¾ أ—طŒأ—â€؛أ—â€¢أ—â€Œ أ—â€¢أ—آ¢أ—â€œأ—â€؛أ—â€¢أ—ع؛
         bonus = random.randint(10, 50)
         cursor.execute("UPDATE users SET balance = balance + %s, xp = xp + 5, last_daily = %s WHERE user_id = %s", (bonus, datetime.now(), str(user_id)))
         cursor.execute("INSERT INTO transactions (receiver_id, amount, type) VALUES (%s, %s, 'daily_bonus')", (str(user_id), bonus))
@@ -107,8 +107,9 @@ def claim_airdrop(user_id, wallet_addr):
     )
     
     # ????? ??????'??? ??????
-    secure_transaction(0, user_id, airdrop_amount, "TON_AIRDROP")
+    secure_transaction('SYSTEM', str(user_id), airdrop_amount, "TON_AIRDROP")
     
     conn.commit()
     conn.close()
     return True, airdrop_amount
+
